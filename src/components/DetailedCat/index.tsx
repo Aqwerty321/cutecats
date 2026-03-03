@@ -27,6 +27,10 @@ export function DetailedCat({
 
   return (
     <div
+      data-testid={`detailed-cat-${cat.id}`}
+      data-cat-id={cat.id}
+      data-cat-x={behavior.position.x.toFixed(2)}
+      data-cat-y={behavior.position.y.toFixed(2)}
       className="absolute select-none cursor-pointer"
       style={{
         left,
@@ -45,6 +49,8 @@ export function DetailedCat({
         behavior={behavior.behavior}
         facing={behavior.facing}
         blinkState={behavior.blinkState}
+        eyeExpression={behavior.eyeExpression}
+        eyeOffset={behavior.eyeOffset}
         walkBob={behavior.walkBob}
         tailWag={behavior.tailWag}
         breathe={behavior.breathe}

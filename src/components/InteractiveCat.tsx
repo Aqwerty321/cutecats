@@ -6,14 +6,22 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CatState } from '@/lib';
 import { seededBool, seededNumber } from '@/lib/deterministic';
+import {
+  DEFAULT_MOTION_CONFIG,
+  integrateMotion,
+  resolveFacing,
+  smoothValue,
+  type MotionState,
+} from '@/lib/motion';
 import { useAnimationClock } from '@/lib/use-animation-clock';
-import { getCatPalette } from './cat-visuals';
+import { createTailStyle, getTailRig } from './cat-geometry';
+import { damp, getCatPalette, getEyeExpression, normalizeFocus } from './cat-visuals';
 
 interface InteractiveCatProps {
   cat: CatState;
   containerBounds?: { width: number; height: number };
   onPet?: () => void;
-  nearbyObjects?: Array<{ id: string; x: number; y: number; type: 'yarn' | 'bubble' | 'card' }>;
+  nearbyObjects?: Array<{ id: string; x: number; y: number; type: 'yarn' | 'bubble' | 'card' | 'ball' }>;
 }
 
 type CatAction = 'idle' | 'walking' | 'sitting' | 'playing' | 'sleeping' | 'grooming' | 'curious';
@@ -35,6 +43,7 @@ export function InteractiveCat({
   const catRef = useRef<HTMLDivElement>(null);
   const colors = getCatPalette(cat.variant);
   const clockMs = useAnimationClock(true);
+  const tailRig = getTailRig('interactive');
 
   const [position, setPosition] = useState(() => ({
     x: seededNumber(`interactive-x-${cat.id}`, 30, 70),
@@ -49,9 +58,35 @@ export function InteractiveCat({
   const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
   const [showHeart, setShowHeart] = useState(false);
   const [showZzz, setShowZzz] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
-  const actionTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const walkTargetRef = useRef({ x: position.x, y: position.y });
+  const actionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const petTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const rafRef = useRef<number>(0);
+  const frameTsRef = useRef<number>(0);
+  const motionRef = useRef<MotionState>({ x: position.x, y: position.y, vx: 0, vy: 0 });
+  const targetRef = useRef<{ x: number; y: number; type?: string } | null>(null);
+  const actionRef = useRef<CatAction>('idle');
+  const directionRef = useRef<'left' | 'right'>(direction);
+  const desiredPupilRef = useRef({ x: 0, y: 0 });
+  const currentPupilRef = useRef({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    actionRef.current = action;
+  }, [action]);
+
+  useEffect(() => {
+    directionRef.current = direction;
+  }, [direction]);
 
   useEffect(() => {
     const scheduleAction = () => {
@@ -59,28 +94,31 @@ export function InteractiveCat({
       const nextAction = moodActions[Math.floor(Math.random() * moodActions.length)];
 
       setAction(nextAction);
+      actionRef.current = nextAction;
       setShowZzz(nextAction === 'sleeping');
 
-      if (nextAction === 'walking') {
+      if (nextAction === 'walking' || nextAction === 'playing' || nextAction === 'curious') {
         const objectTarget =
-          nearbyObjects.length > 0 && Math.random() > 0.5
+          nearbyObjects.length > 0 && Math.random() > 0.42
             ? nearbyObjects[Math.floor(Math.random() * nearbyObjects.length)]
             : null;
 
-        walkTargetRef.current = objectTarget
-          ? { x: objectTarget.x, y: objectTarget.y }
+        targetRef.current = objectTarget
+          ? { x: objectTarget.x, y: objectTarget.y, type: objectTarget.type }
           : {
               x: 10 + Math.random() * 80,
               y: 20 + Math.random() * 60,
             };
+      } else {
+        targetRef.current = null;
       }
 
       const duration =
         nextAction === 'sleeping'
-          ? 8000 + Math.random() * 5000
-          : nextAction === 'walking'
-            ? 3000 + Math.random() * 2000
-            : 2000 + Math.random() * 4000;
+          ? 7600 + Math.random() * 4600
+          : nextAction === 'walking' || nextAction === 'playing'
+            ? 2400 + Math.random() * 1800
+            : 1800 + Math.random() * 3200;
 
       actionTimerRef.current = setTimeout(scheduleAction, duration);
     };
@@ -95,36 +133,6 @@ export function InteractiveCat({
   }, [cat.mood, nearbyObjects]);
 
   useEffect(() => {
-    if (action !== 'walking') {
-      return;
-    }
-
-    const walkInterval = setInterval(() => {
-      setPosition((prev) => {
-        const dx = walkTargetRef.current.x - prev.x;
-        const dy = walkTargetRef.current.y - prev.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 2) {
-          setAction('idle');
-          return prev;
-        }
-
-        const speedScale = Math.max(0.75, Math.min(1.5, containerBounds.width / 800));
-        const speed = 0.3 * speedScale;
-        const next = {
-          x: prev.x + (dx / distance) * speed,
-          y: prev.y + (dy / distance) * speed,
-        };
-        setDirection(next.x > prev.x ? 'right' : 'left');
-        return next;
-      });
-    }, 50);
-
-    return () => clearInterval(walkInterval);
-  }, [action, containerBounds.width]);
-
-  useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!catRef.current) {
         return;
@@ -133,40 +141,132 @@ export function InteractiveCat({
       const rect = catRef.current.getBoundingClientRect();
       const catCenterX = rect.left + rect.width / 2;
       const catCenterY = rect.top + rect.height / 3;
-
-      const dx = event.clientX - catCenterX;
-      const dy = event.clientY - catCenterY;
-      const maxOffset = 4;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      setPupilOffset({
-        x: distance > 0 ? ((dx / distance) * Math.min(distance / 80, 1) * maxOffset) : 0,
-        y: distance > 0 ? ((dy / distance) * Math.min(distance / 80, 1) * maxOffset) : 0,
-      });
+      desiredPupilRef.current = normalizeFocus(event.clientX - catCenterX, event.clientY - catCenterY, 4);
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  useEffect(() => {
+    const update = (timestamp: number) => {
+      if (!frameTsRef.current) {
+        frameTsRef.current = timestamp;
+      }
+      const dt = Math.max(0.001, Math.min(0.05, (timestamp - frameTsRef.current) / 1000));
+      frameTsRef.current = timestamp;
+
+      const liveAction = actionRef.current;
+      const target = targetRef.current;
+      const canMove = liveAction === 'walking' || liveAction === 'playing' || liveAction === 'curious';
+
+      if (canMove && target) {
+        const speedScale = Math.max(0.8, Math.min(1.4, containerBounds.width / 800));
+        const motionConfig = {
+          ...DEFAULT_MOTION_CONFIG,
+          acceleration: liveAction === 'playing' ? 11 : 8,
+          maxSpeed: (liveAction === 'playing' ? 22 : liveAction === 'curious' ? 17 : 14) * speedScale * (reducedMotion ? 0.72 : 1),
+          arrivalRadius: liveAction === 'playing' ? 1.4 : 2,
+          maxStep: reducedMotion ? 1.1 : 1.6,
+        };
+
+        const nextMotion = integrateMotion(motionRef.current, target, { minX: 5, maxX: 95, minY: 10, maxY: 90 }, dt, motionConfig);
+        motionRef.current = nextMotion;
+        setPosition({ x: nextMotion.x, y: nextMotion.y });
+
+        const nextDirection = resolveFacing(directionRef.current, nextMotion.vx, motionConfig.facingHysteresis);
+        if (nextDirection !== directionRef.current) {
+          directionRef.current = nextDirection;
+          setDirection(nextDirection);
+        }
+
+        const distance = Math.hypot(target.x - nextMotion.x, target.y - nextMotion.y);
+        if (distance < motionConfig.arrivalRadius + 0.25) {
+          if (liveAction === 'walking' || liveAction === 'curious') {
+            setAction('idle');
+            actionRef.current = 'idle';
+          }
+          targetRef.current = null;
+        }
+      } else {
+        motionRef.current = {
+          ...motionRef.current,
+          vx: smoothValue(motionRef.current.vx, 0, 10, dt),
+          vy: smoothValue(motionRef.current.vy, 0, 10, dt),
+        };
+      }
+
+      const damping = reducedMotion ? 6 : 11;
+      const factor = 1 - Math.exp(-damping * dt);
+      currentPupilRef.current = {
+        x: damp(currentPupilRef.current.x, desiredPupilRef.current.x, factor),
+        y: damp(currentPupilRef.current.y, desiredPupilRef.current.y, factor),
+      };
+      setPupilOffset({ x: currentPupilRef.current.x, y: currentPupilRef.current.y });
+
+      rafRef.current = requestAnimationFrame(update);
+    };
+
+    rafRef.current = requestAnimationFrame(update);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      frameTsRef.current = 0;
+    };
+  }, [containerBounds.width, reducedMotion]);
+
+  useEffect(() => {
+    return () => {
+      if (petTimerRef.current) {
+        clearTimeout(petTimerRef.current);
+      }
+      if (heartTimerRef.current) {
+        clearTimeout(heartTimerRef.current);
+      }
+    };
+  }, []);
+
   const handlePet = useCallback(() => {
     setIsPetted(true);
     setShowHeart(true);
     setAction('idle');
+    actionRef.current = 'idle';
+    targetRef.current = null;
     onPet?.();
 
-    setTimeout(() => setIsPetted(false), 600);
-    setTimeout(() => setShowHeart(false), 1500);
+    if (petTimerRef.current) {
+      clearTimeout(petTimerRef.current);
+    }
+    if (heartTimerRef.current) {
+      clearTimeout(heartTimerRef.current);
+    }
+
+    petTimerRef.current = setTimeout(() => setIsPetted(false), 600);
+    heartTimerRef.current = setTimeout(() => setShowHeart(false), 1500);
   }, [onPet]);
 
   const isAsleep = action === 'sleeping';
-  const eyeSquint = isPetted ? 0.2 : isAsleep ? 0 : isHovered ? 0.8 : 1;
-  const tailAngle = Math.sin(clockMs / 250) * (action === 'playing' ? 25 : 12);
+  const expression = getEyeExpression({
+    mood: isAsleep ? 'sleepy' : cat.mood,
+    behavior: action,
+    variant: cat.variant,
+    isHovered,
+    isPetted,
+    isSleeping: isAsleep,
+  });
+
+  const blinkWindow = (clockMs + cat.id.length * 320) % 4200;
+  const blinkRatio = isAsleep ? 0.08 : blinkWindow > 3650 && blinkWindow < 3830 ? 0.14 : expression.blinkRatio;
+  const eyeOpen = Math.max(0.08, blinkRatio);
+
+  const tailAngle =
+    Math.sin((clockMs / 250) * (reducedMotion ? 0.65 : 1)) *
+    (action === 'playing' ? (reducedMotion ? 14 : 25) : reducedMotion ? 7 : 12);
+  const walkBob = action === 'walking' || action === 'playing' ? Math.sin(clockMs / 120) * (reducedMotion ? 1 : 2.2) : 0;
 
   return (
     <div
       ref={catRef}
-      className="absolute transition-all duration-300 cursor-pointer select-none"
+      className="absolute cursor-pointer select-none"
       style={{
         left: `${position.x}%`,
         top: `${position.y}%`,
@@ -181,7 +281,7 @@ export function InteractiveCat({
       {showHeart && (
         <div
           className="absolute -top-8 left-1/2 -translate-x-1/2 text-2xl animate-bounce pointer-events-none"
-          style={{ animation: 'floatUp 1.5s ease-out forwards' }}
+          style={{ animation: 'heart-rise 1.5s ease-out forwards' }}
         >
           heart
         </div>
@@ -195,36 +295,51 @@ export function InteractiveCat({
         width={140}
         height={140}
         viewBox="0 0 100 100"
-        className={`transition-transform duration-300 ${action === 'walking' ? 'animate-walk' : ''} ${
-          isPetted ? 'scale-110' : ''
-        }`}
+        className={isPetted ? 'scale-110' : 'scale-100'}
+        style={{
+          transform: `translateY(${walkBob}px)`,
+          transition: 'transform 0.14s cubic-bezier(0.22, 1, 0.36, 1)',
+        }}
       >
-        <g
-          style={{
-            transformOrigin: '78px 62px',
-            transform: `rotate(${tailAngle}deg)`,
-            transition: 'transform 0.1s ease-out',
-          }}
-        >
+        <g style={createTailStyle(tailAngle, tailRig.origin)}>
           <path
-            d="M 78 62 Q 95 50 90 35 Q 88 28 82 32"
+            d={tailRig.path}
             fill="none"
             stroke={colors.primary}
-            strokeWidth="7"
+            strokeWidth={tailRig.strokeWidth}
             strokeLinecap="round"
           />
-          <circle cx="82" cy="32" r="5" fill={colors.accent} />
+          <circle cx={tailRig.tipX} cy={tailRig.tipY} r="5" fill={colors.accent} />
         </g>
 
         <ellipse cx="50" cy="65" rx="30" ry="24" fill={colors.primary} />
+        <ellipse
+          data-testid="interactive-cat-tail-root"
+          cx={tailRig.rootPatchCx}
+          cy={tailRig.rootPatchCy}
+          rx={tailRig.rootPatchRx}
+          ry={tailRig.rootPatchRy}
+          fill={colors.primary}
+        />
         <circle cx="50" cy="35" r="24" fill={colors.secondary} />
 
-        <ellipse cx="40" cy="33" rx="6" ry={7 * eyeSquint} fill={colors.eye} />
-        <ellipse cx="60" cy="33" rx="6" ry={7 * eyeSquint} fill={colors.eye} />
-        {eyeSquint > 0.3 && (
+        {!isAsleep ? (
           <>
-            <circle cx={40 + pupilOffset.x} cy={33 + pupilOffset.y * 0.5} r="3" fill={colors.pupil} />
-            <circle cx={60 + pupilOffset.x} cy={33 + pupilOffset.y * 0.5} r="3" fill={colors.pupil} />
+            <ellipse data-testid="interactive-cat-eye-left-sclera" cx="40" cy="33" rx="6" ry={7 * eyeOpen} fill={expression.eyeWhite} />
+            <ellipse data-testid="interactive-cat-eye-right-sclera" cx="60" cy="33" rx="6" ry={7 * eyeOpen} fill={expression.eyeWhite} />
+            <ellipse cx={40 + pupilOffset.x * 0.7} cy={33 + pupilOffset.y * 0.55} rx="3.8" ry={4.6 * eyeOpen} fill={expression.iris} />
+            <ellipse cx={60 + pupilOffset.x * 0.7} cy={33 + pupilOffset.y * 0.55} rx="3.8" ry={4.6 * eyeOpen} fill={expression.iris} />
+            <ellipse data-testid="interactive-cat-eye-left-pupil" cx={40 + pupilOffset.x} cy={33 + pupilOffset.y * 0.65} rx="2.3" ry={3.3 * eyeOpen} fill={expression.pupil} />
+            <ellipse data-testid="interactive-cat-eye-right-pupil" cx={60 + pupilOffset.x} cy={33 + pupilOffset.y * 0.65} rx="2.3" ry={3.3 * eyeOpen} fill={expression.pupil} />
+            <circle data-testid="interactive-cat-eye-left-highlight" cx={38 + pupilOffset.x * 0.45} cy={31 + pupilOffset.y * 0.3} r="1.2" fill={expression.highlight} />
+            <circle data-testid="interactive-cat-eye-right-highlight" cx={58 + pupilOffset.x * 0.45} cy={31 + pupilOffset.y * 0.3} r="1.2" fill={expression.highlight} />
+            <ellipse cx="40" cy="31.8" rx="6.1" ry="2" fill={colors.secondary} opacity={expression.eyelidOpacity} />
+            <ellipse cx="60" cy="31.8" rx="6.1" ry="2" fill={colors.secondary} opacity={expression.eyelidOpacity} />
+          </>
+        ) : (
+          <>
+            <path d="M 34 33 Q 40 37 46 33" fill="none" stroke={colors.eye} strokeWidth="2" strokeLinecap="round" />
+            <path d="M 54 33 Q 60 37 66 33" fill="none" stroke={colors.eye} strokeWidth="2" strokeLinecap="round" />
           </>
         )}
       </svg>
@@ -252,30 +367,6 @@ export function InteractiveCat({
         </p>
       )}
 
-      <style jsx>{`
-        @keyframes floatUp {
-          0% {
-            opacity: 1;
-            transform: translateX(-50%) translateY(0);
-          }
-          100% {
-            opacity: 0;
-            transform: translateX(-50%) translateY(-40px);
-          }
-        }
-        @keyframes walk {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-3px);
-          }
-        }
-        .animate-walk {
-          animation: walk 0.3s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   );
 }

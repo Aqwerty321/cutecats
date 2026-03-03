@@ -6,7 +6,8 @@
 import { useRef, useEffect, useState, memo } from 'react';
 import type { CatAgent } from '@/lib/cat-agent';
 import { useAnimationClock } from '@/lib/use-animation-clock';
-import { getCatPalette } from './cat-visuals';
+import { createTailStyle, getTailRig } from './cat-geometry';
+import { getCatPalette, getEyeExpression } from './cat-visuals';
 
 interface LivingCatProps {
   cat: CatAgent;
@@ -16,14 +17,15 @@ interface LivingCatProps {
 export const LivingCat = memo(function LivingCat({ cat, onInteract }: LivingCatProps) {
   const colors = getCatPalette(cat.variant);
   const animationMs = useAnimationClock(true);
+  const tailRig = getTailRig('living');
   const [blinkState, setBlinkState] = useState(1);
-  const blinkTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const blinkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const scheduleBlink = () => {
       const interval = 2000 + (1 - cat.posture.blinkRate) * 4000 + Math.random() * 2000;
       blinkTimerRef.current = setTimeout(() => {
-        setBlinkState(0);
+        setBlinkState(0.12);
         setTimeout(() => setBlinkState(1), 150);
         scheduleBlink();
       }, interval);
@@ -48,6 +50,16 @@ export const LivingCat = memo(function LivingCat({ cat, onInteract }: LivingCatP
       ? Math.sin(animationMs / 100) * 2
       : 0;
 
+  const expression = getEyeExpression({
+    mood: isAsleep ? 'sleepy' : 'curious',
+    behavior: cat.currentBehavior,
+    variant: cat.variant,
+    isSleeping: isAsleep,
+  });
+  const eyeOpen = Math.max(0.1, blinkState * expression.blinkRatio);
+  const pupilX = Math.max(-1.4, Math.min(1.4, cat.velocity.x * 0.6));
+  const pupilY = Math.max(-0.8, Math.min(0.8, cat.velocity.y * 0.5));
+
   const catSize = 80;
 
   return (
@@ -67,24 +79,9 @@ export const LivingCat = memo(function LivingCat({ cat, onInteract }: LivingCatP
         <ellipse cx="0" cy="12" rx={isLoaf ? 18 : 15} ry="4" fill="rgba(0,0,0,0.1)" />
 
         <g transform={`translate(0, ${walkBob}) scale(${breatheScale})`}>
-          <g
-            style={{
-              transformOrigin: '-12px 5px',
-              transform: `rotate(${tailAngle + cat.posture.earAngle * 0.3}deg)`,
-            }}
-          >
-            <path
-              d={
-                isLoaf
-                  ? 'M -12 5 Q -25 0 -20 -8 Q -18 -12 -15 -10'
-                  : 'M -12 5 Q -28 -5 -22 -18 Q -20 -22 -16 -20'
-              }
-              fill="none"
-              stroke={colors.primary}
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-            <circle cx={isLoaf ? -15 : -16} cy={isLoaf ? -10 : -20} r="3.5" fill={colors.accent} />
+          <g style={createTailStyle(tailAngle + cat.posture.earAngle * 0.3, tailRig.origin)}>
+            <path d={tailRig.path} fill="none" stroke={colors.primary} strokeWidth={tailRig.strokeWidth} strokeLinecap="round" />
+            <circle cx={tailRig.tipX} cy={tailRig.tipY} r="3.5" fill={colors.accent} />
           </g>
 
           {isLoaf ? (
@@ -94,6 +91,15 @@ export const LivingCat = memo(function LivingCat({ cat, onInteract }: LivingCatP
           ) : (
             <ellipse cx="0" cy="4" rx="14" ry="10" fill={colors.primary} />
           )}
+
+          <ellipse
+            data-testid="living-cat-tail-root"
+            cx={tailRig.rootPatchCx}
+            cy={tailRig.rootPatchCy}
+            rx={tailRig.rootPatchRx}
+            ry={tailRig.rootPatchRy}
+            fill={colors.primary}
+          />
 
           <ellipse
             cx="0"
@@ -113,8 +119,23 @@ export const LivingCat = memo(function LivingCat({ cat, onInteract }: LivingCatP
 
           <g transform={`rotate(${cat.posture.headTilt})`}>
             <circle cx="0" cy="-8" r="12" fill={colors.primary} />
-            <ellipse cx="-5" cy="-9" rx="3.5" ry={4 * blinkState} fill={colors.eye} />
-            <ellipse cx="5" cy="-9" rx="3.5" ry={4 * blinkState} fill={colors.eye} />
+            {!isAsleep ? (
+              <>
+                <ellipse data-testid="living-cat-eye-left-sclera" cx="-5" cy="-9" rx="3.5" ry={4 * eyeOpen} fill={expression.eyeWhite} />
+                <ellipse data-testid="living-cat-eye-right-sclera" cx="5" cy="-9" rx="3.5" ry={4 * eyeOpen} fill={expression.eyeWhite} />
+                <ellipse cx={-5 + pupilX * 0.7} cy={-9 + pupilY * 0.7} rx="2.2" ry={2.8 * eyeOpen} fill={expression.iris} />
+                <ellipse cx={5 + pupilX * 0.7} cy={-9 + pupilY * 0.7} rx="2.2" ry={2.8 * eyeOpen} fill={expression.iris} />
+                <ellipse data-testid="living-cat-eye-left-pupil" cx={-5 + pupilX} cy={-9 + pupilY} rx="1.4" ry={2.1 * eyeOpen} fill={expression.pupil} />
+                <ellipse data-testid="living-cat-eye-right-pupil" cx={5 + pupilX} cy={-9 + pupilY} rx="1.4" ry={2.1 * eyeOpen} fill={expression.pupil} />
+                <circle data-testid="living-cat-eye-left-highlight" cx={-6.2 + pupilX * 0.35} cy={-10.1 + pupilY * 0.3} r="0.7" fill={expression.highlight} />
+                <circle data-testid="living-cat-eye-right-highlight" cx={3.8 + pupilX * 0.35} cy={-10.1 + pupilY * 0.3} r="0.7" fill={expression.highlight} />
+              </>
+            ) : (
+              <>
+                <path d="M -8 -9 Q -5 -6 -2 -9" fill="none" stroke={colors.eye} strokeWidth="1.2" strokeLinecap="round" />
+                <path d="M 2 -9 Q 5 -6 8 -9" fill="none" stroke={colors.eye} strokeWidth="1.2" strokeLinecap="round" />
+              </>
+            )}
           </g>
 
           {isGrooming && (

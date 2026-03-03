@@ -4,3 +4,4 @@ export * from './world-context';
 export * from './deterministic';
 export * from './use-animation-clock';
 export * from './content';
+export * from './motion';

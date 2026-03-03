@@ -6,7 +6,8 @@
 import { useRef, useEffect, useState, useCallback, memo } from 'react';
 import type { CatState } from '@/lib/world-types';
 import { useAnimationClock } from '@/lib/use-animation-clock';
-import { getCatPalette } from './cat-visuals';
+import { createTailStyle, getTailRig } from './cat-geometry';
+import { getCatPalette, getEyeExpression } from './cat-visuals';
 
 interface AutonomousCatProps {
   cat: CatState;
@@ -37,6 +38,7 @@ export const AutonomousCat = memo(function AutonomousCat({
 }: AutonomousCatProps) {
   const colors = getCatPalette(cat.variant);
   const animationMs = useAnimationClock(true);
+  const tailRig = getTailRig('autonomous');
   const [physics, setPhysics] = useState<CatPhysics>({
     x: cat.position.x,
     y: cat.position.y,
@@ -51,7 +53,7 @@ export const AutonomousCat = memo(function AutonomousCat({
   const [isHovered, setIsHovered] = useState(false);
 
   const animationRef = useRef<number>(0);
-  const behaviorTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const behaviorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUpdateRef = useRef<number>(0);
 
   const decideBehavior = useCallback(() => {
@@ -160,15 +162,21 @@ export const AutonomousCat = memo(function AutonomousCat({
   }, [behavior, bounds]);
 
   useEffect(() => {
+    let closedTimer: ReturnType<typeof setTimeout> | null = null;
     const blink = () => {
       if (behavior !== 'sleeping') {
-        setBlinkState(0);
-        setTimeout(() => setBlinkState(1), 150);
+        setBlinkState(0.12);
+        closedTimer = setTimeout(() => setBlinkState(1), 150);
       }
       setTimeout(blink, 2000 + Math.random() * 4000);
     };
     const timer = setTimeout(blink, Math.random() * 3000);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      if (closedTimer) {
+        clearTimeout(closedTimer);
+      }
+    };
   }, [behavior]);
 
   const handleClick = () => {
@@ -181,6 +189,16 @@ export const AutonomousCat = memo(function AutonomousCat({
   const isMoving = behavior === 'wandering' || behavior === 'playing';
   const walkBob = isMoving ? Math.sin(animationMs / 100) * 2 : 0;
   const tailWag = Math.sin(animationMs / 300) * (behavior === 'playing' ? 25 : 10);
+
+  const expression = getEyeExpression({
+    mood: isAsleep ? 'sleepy' : cat.mood,
+    behavior,
+    variant: cat.variant,
+    isSleeping: isAsleep,
+  });
+  const eyeOpen = Math.max(0.1, blinkState * expression.blinkRatio);
+  const pupilX = Math.max(-1.2, Math.min(1.2, physics.vx * 0.8));
+  const pupilY = Math.max(-0.8, Math.min(0.8, physics.vy * 0.6));
 
   return (
     <div
@@ -201,27 +219,39 @@ export const AutonomousCat = memo(function AutonomousCat({
         <ellipse cx="0" cy="14" rx={isAsleep ? 20 : 16} ry="4" fill="rgba(0,0,0,0.1)" />
 
         <g transform={`translate(0, ${walkBob})`}>
-          <g
-            style={{
-              transformOrigin: '-12px 5px',
-              transform: `rotate(${tailWag}deg)`,
-            }}
-          >
-            <path
-              d={isAsleep ? 'M -10 5 Q -22 0 -18 -6' : 'M -12 5 Q -26 -3 -20 -16'}
-              fill="none"
-              stroke={colors.primary}
-              strokeWidth="5"
-              strokeLinecap="round"
-            />
-            <circle cx={isAsleep ? -18 : -20} cy={isAsleep ? -6 : -16} r="3" fill={colors.accent} />
+          <g style={createTailStyle(tailWag, tailRig.origin)}>
+            <path d={tailRig.path} fill="none" stroke={colors.primary} strokeWidth={tailRig.strokeWidth} strokeLinecap="round" />
+            <circle cx={tailRig.tipX} cy={tailRig.tipY} r="3" fill={colors.accent} />
           </g>
 
           <ellipse cx="0" cy={isAsleep ? 5 : 3} rx={isAsleep ? 18 : 14} ry={isAsleep ? 8 : 10} fill={colors.primary} />
+          <ellipse
+            data-testid="autonomous-cat-tail-root"
+            cx={tailRig.rootPatchCx}
+            cy={tailRig.rootPatchCy}
+            rx={tailRig.rootPatchRx}
+            ry={tailRig.rootPatchRy}
+            fill={colors.primary}
+          />
           <circle cx="0" cy="-8" r="11" fill={colors.secondary} />
 
-          <ellipse cx="-4" cy="-9" rx="3" ry={3.5 * blinkState} fill={colors.eye} />
-          <ellipse cx="4" cy="-9" rx="3" ry={3.5 * blinkState} fill={colors.eye} />
+          {!isAsleep ? (
+            <>
+              <ellipse data-testid="autonomous-cat-eye-left-sclera" cx="-4" cy="-9" rx="3" ry={3.5 * eyeOpen} fill={expression.eyeWhite} />
+              <ellipse data-testid="autonomous-cat-eye-right-sclera" cx="4" cy="-9" rx="3" ry={3.5 * eyeOpen} fill={expression.eyeWhite} />
+              <ellipse cx={-4 + pupilX * 0.75} cy={-9 + pupilY * 0.75} rx="2" ry={2.5 * eyeOpen} fill={expression.iris} />
+              <ellipse cx={4 + pupilX * 0.75} cy={-9 + pupilY * 0.75} rx="2" ry={2.5 * eyeOpen} fill={expression.iris} />
+              <ellipse data-testid="autonomous-cat-eye-left-pupil" cx={-4 + pupilX} cy={-9 + pupilY} rx="1.25" ry={2 * eyeOpen} fill={expression.pupil} />
+              <ellipse data-testid="autonomous-cat-eye-right-pupil" cx={4 + pupilX} cy={-9 + pupilY} rx="1.25" ry={2 * eyeOpen} fill={expression.pupil} />
+              <circle data-testid="autonomous-cat-eye-left-highlight" cx={-5.2 + pupilX * 0.3} cy={-10.2 + pupilY * 0.2} r="0.68" fill={expression.highlight} />
+              <circle data-testid="autonomous-cat-eye-right-highlight" cx={2.8 + pupilX * 0.3} cy={-10.2 + pupilY * 0.2} r="0.68" fill={expression.highlight} />
+            </>
+          ) : (
+            <>
+              <path d="M -7 -9 Q -4 -7 -1 -9" fill="none" stroke={colors.eye} strokeWidth="1.2" strokeLinecap="round" />
+              <path d="M 1 -9 Q 4 -7 7 -9" fill="none" stroke={colors.eye} strokeWidth="1.2" strokeLinecap="round" />
+            </>
+          )}
 
           {isAsleep && (
             <text x="14" y="-16" fontSize="7" fill={colors.accent} opacity={0.5 + Math.sin(animationMs / 500) * 0.3}>

@@ -2,6 +2,9 @@
   "name": "cutecats",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +15,8 @@
     "test:component": "vitest run tests/component --environment jsdom",
     "test:e2e": "playwright test",
     "test:coverage": "vitest run tests/unit tests/component --environment jsdom --coverage",
-    "check": "npm run lint && npm run build && npm run test"
+    "check": "npm run lint && npm run build && npm run test",
+    "check:deploy": "npm run lint && npm run build"
   },
   "dependencies": {
     "next": "16.1.0",

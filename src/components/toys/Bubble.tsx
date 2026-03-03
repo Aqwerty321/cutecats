@@ -73,8 +73,9 @@ export function Bubble({ size = 40, color = 'lilac', onPop, delay = 0 }: BubbleP
   }
 
   return (
-    <div
-      className="cursor-pointer transition-transform duration-200"
+    <button
+      type="button"
+      className="cursor-pointer transition-transform duration-200 bg-transparent border-0 p-0"
       style={{
         width: size,
         height: size,
@@ -85,22 +86,30 @@ export function Bubble({ size = 40, color = 'lilac', onPop, delay = 0 }: BubbleP
       onClick={handlePop}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      aria-label="Pop bubble"
     >
       <svg width={size} height={size} viewBox="0 0 40 40">
         <circle cx="20" cy="20" r="18" fill={tones.fill} stroke={tones.stroke} strokeWidth="1.2" />
         <ellipse cx="14" cy="14" rx="6" ry="4" fill={tones.highlight} transform="rotate(-30 14 14)" />
         <circle cx="26" cy="26" r="2" fill={tones.highlight} opacity="0.45" />
       </svg>
-    </div>
+    </button>
   );
 }
 
 interface BubbleFieldProps {
   count?: number;
-  onBubblesChange?: (bubbles: Array<{ id: string; x: number; y: number; type: string }>) => void;
+  onBubblesChange?: (bubbles: Array<{ id: string; x: number; y: number; type: 'bubble' }>) => void;
+  onBubblePop?: (bubble: {
+    id: string;
+    x: number;
+    y: number;
+    size: number;
+    color: 'lilac' | 'peach' | 'mint';
+  }) => void;
 }
 
-export function BubbleField({ count = 8, onBubblesChange }: BubbleFieldProps) {
+export function BubbleField({ count = 8, onBubblesChange, onBubblePop }: BubbleFieldProps) {
   const [bubbles, setBubbles] = useState<BubbleData[]>(() => createBubbleSet(count));
   const nextIdRef = useRef<number>(count + 1);
 
@@ -119,15 +128,26 @@ export function BubbleField({ count = 8, onBubblesChange }: BubbleFieldProps) {
     );
   }, [bubbles, onBubblesChange]);
 
-  const handlePop = useCallback((id: number) => {
-    setBubbles((prev) => prev.filter((bubble) => bubble.id !== id));
+  const handlePop = useCallback(
+    (bubble: BubbleData) => {
+      setBubbles((prev) => prev.filter((item) => item.id !== bubble.id));
 
-    setTimeout(() => {
-      const nextId = nextIdRef.current;
-      nextIdRef.current += 1;
-      setBubbles((prev) => [...prev, createBubble(nextId)]);
-    }, seededNumber(`bubble-respawn-${id}`, 2800, 7600));
-  }, []);
+      onBubblePop?.({
+        id: `bubble-${bubble.id}`,
+        x: bubble.x,
+        y: bubble.y,
+        size: bubble.size,
+        color: bubble.color,
+      });
+
+      setTimeout(() => {
+        const nextId = nextIdRef.current;
+        nextIdRef.current += 1;
+        setBubbles((prev) => [...prev, createBubble(nextId)]);
+      }, seededNumber(`bubble-respawn-${bubble.id}`, 2800, 7600));
+    },
+    [onBubblePop]
+  );
 
   return (
     <>
@@ -141,9 +161,8 @@ export function BubbleField({ count = 8, onBubblesChange }: BubbleFieldProps) {
             top: `${bubble.y}%`,
             transform: 'translate(-50%, -50%)',
           }}
-          onClick={() => handlePop(bubble.id)}
         >
-          <Bubble size={bubble.size} color={bubble.color} delay={bubble.delay} onPop={() => handlePop(bubble.id)} />
+          <Bubble size={bubble.size} color={bubble.color} delay={bubble.delay} onPop={() => handlePop(bubble)} />
         </div>
       ))}
     </>

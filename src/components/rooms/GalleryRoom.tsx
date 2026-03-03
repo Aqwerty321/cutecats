@@ -49,7 +49,7 @@ function CatProfile({ cat, onPet, onSetMood, isSelected, onSelect }: CatProfileP
   return (
     <GlassPanel
       glowColor={cat.variant === 'cream' ? 'peach' : cat.variant === 'mint' ? 'mint' : 'lilac'}
-      enableTilt
+      enableTilt={false}
       className={`cursor-pointer p-6 transition-all duration-500 ${isSelected ? 'scale-105' : 'scale-100'}`}
       style={{ minWidth: isSelected ? '280px' : '210px' }}
       variant={isSelected ? 'vivid' : 'soft'}
@@ -60,6 +60,10 @@ function CatProfile({ cat, onPet, onSetMood, isSelected, onSelect }: CatProfileP
           onClick={(event) => {
             event.stopPropagation();
             onPet();
+          }}
+          style={{
+            transform: `scaleX(${cat.id.charCodeAt(0) % 2 === 0 ? -1 : 1})`,
+            transition: 'transform var(--duration-slow) var(--ease-fluid)',
           }}
         >
           <SanctuaryCat variant={cat.variant} size={isSelected ? 160 : 118} />

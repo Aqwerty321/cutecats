@@ -21,6 +21,13 @@ export interface InteractableObject {
   x: number;
   y: number;
   type: string;
+  intensity?: number;
+  activeUntil?: number;
+  energy?: number;
+  comboWindowUntil?: number;
+  cooldownUntil?: number;
+  ownerCatId?: string | null;
+  lastImpulse?: number;
 }
 
 export interface DetailedCatProps {
@@ -30,4 +37,3 @@ export interface DetailedCatProps {
   cursorPosition?: { x: number; y: number } | null;
   objects?: InteractableObject[];
 }
-

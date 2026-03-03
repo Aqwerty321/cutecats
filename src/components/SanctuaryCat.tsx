@@ -1,25 +1,17 @@
 /**
- * SanctuaryCat — The Emotional Anchor
- * 
- * A modular, animated SVG cat with premium-cute proportions.
- * All colors controlled via CSS variables.
- * Animations are CSS-only for performance.
- * 
- * Client Component — Needed for pupil tracking
+ * SanctuaryCat - The Emotional Anchor
  */
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { getCatPalette } from './cat-visuals';
+import { useAnimationClock } from '@/lib/use-animation-clock';
+import { createTailStyle, getTailRig } from './cat-geometry';
+import { damp, getCatPalette, getEyeExpression, normalizeFocus } from './cat-visuals';
 
 interface SanctuaryCatProps {
-  /** Size in pixels */
   size?: number;
-  /** Cat color variant */
   variant?: 'cream' | 'peach' | 'lilac' | 'mint';
-  /** Enable pupil cursor tracking */
   enablePupilTracking?: boolean;
-  /** Additional CSS classes */
   className?: string;
 }
 
@@ -30,44 +22,102 @@ export function SanctuaryCat({
   className = '',
 }: SanctuaryCatProps) {
   const catRef = useRef<SVGSVGElement>(null);
+  const targetOffsetRef = useRef({ x: 0, y: 0 });
+  const currentOffsetRef = useRef({ x: 0, y: 0 });
+  const rafRef = useRef<number>(0);
+  const happyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
   const [isHappy, setIsHappy] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
 
   const colors = getCatPalette(variant);
+  const tailRig = getTailRig('sanctuary');
+  const clockMs = useAnimationClock(true);
 
-  // Pupil tracking with smooth dampening
   useEffect(() => {
-    if (!enablePupilTracking) return;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!catRef.current) return;
+  useEffect(() => {
+    if (!enablePupilTracking) {
+      return;
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!catRef.current) {
+        return;
+      }
 
       const rect = catRef.current.getBoundingClientRect();
       const catCenterX = rect.left + rect.width / 2;
       const catCenterY = rect.top + rect.height / 2;
 
-      // Calculate direction to cursor
-      const dx = e.clientX - catCenterX;
-      const dy = e.clientY - catCenterY;
-
-      // Normalize and limit movement (max 3px offset for subtle effect)
-      const maxOffset = 3;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const normalizedX = distance > 0 ? (dx / distance) * Math.min(distance / 100, 1) * maxOffset : 0;
-      const normalizedY = distance > 0 ? (dy / distance) * Math.min(distance / 100, 1) * maxOffset : 0;
-
-      setPupilOffset({ x: normalizedX, y: normalizedY });
+      const normalized = normalizeFocus(event.clientX - catCenterX, event.clientY - catCenterY, 3);
+      targetOffsetRef.current = normalized;
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [enablePupilTracking]);
 
-  // Happy reaction on click (pet the cat)
+  useEffect(() => {
+    if (!enablePupilTracking) {
+      return;
+    }
+
+    let previous = performance.now();
+
+    const animate = (now: number) => {
+      const dt = Math.max(0.001, Math.min(0.05, (now - previous) / 1000));
+      previous = now;
+
+      const damping = reducedMotion ? 7 : 12;
+      const factor = 1 - Math.exp(-damping * dt);
+
+      currentOffsetRef.current = {
+        x: damp(currentOffsetRef.current.x, targetOffsetRef.current.x, factor),
+        y: damp(currentOffsetRef.current.y, targetOffsetRef.current.y, factor),
+      };
+      setPupilOffset({ x: currentOffsetRef.current.x, y: currentOffsetRef.current.y });
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [enablePupilTracking, reducedMotion]);
+
   const handlePet = useCallback(() => {
+    if (happyTimerRef.current) {
+      clearTimeout(happyTimerRef.current);
+    }
     setIsHappy(true);
-    setTimeout(() => setIsHappy(false), 800);
+    happyTimerRef.current = setTimeout(() => setIsHappy(false), 800);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (happyTimerRef.current) {
+        clearTimeout(happyTimerRef.current);
+      }
+    };
+  }, []);
+
+  const expression = getEyeExpression({
+    mood: isHappy ? 'affectionate' : 'calm',
+    variant,
+    isPetted: isHappy,
+  });
+
+  const blinkWindow = (clockMs + 600) % 4200;
+  const blinkRatio = blinkWindow > 3660 && blinkWindow < 3830 ? 0.16 : expression.blinkRatio;
+  const eyeOpen = Math.max(0.12, blinkRatio);
+  const tailAngle = Math.sin((clockMs / 260) * (reducedMotion ? 0.6 : 1)) * (reducedMotion ? 9 : 16);
 
   return (
     <svg
@@ -82,7 +132,6 @@ export function SanctuaryCat({
       aria-label="A cute cat companion"
     >
       <defs>
-        {/* Soft glow filter */}
         <filter id={`cat-glow-${variant}`} x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="2" result="blur" />
           <feMerge>
@@ -92,9 +141,18 @@ export function SanctuaryCat({
         </filter>
       </defs>
 
-      {/* === BODY GROUP === */}
+      <g id="tail" style={createTailStyle(tailAngle, tailRig.origin)}>
+        <path
+          d={tailRig.path}
+          fill="none"
+          stroke={colors.primary}
+          strokeWidth={tailRig.strokeWidth}
+          strokeLinecap="round"
+        />
+        <circle cx={tailRig.tipX} cy={tailRig.tipY} r="4" fill={colors.accent} />
+      </g>
+
       <g id="body">
-        {/* Main body - rounded blob shape */}
         <ellipse
           cx="50"
           cy="62"
@@ -105,197 +163,92 @@ export function SanctuaryCat({
             filter: `url(#cat-glow-${variant})`,
           }}
         />
-        {/* Belly highlight */}
+        <ellipse cx="50" cy="65" rx="18" ry="14" fill={colors.secondary} opacity="0.6" />
         <ellipse
-          cx="50"
-          cy="65"
-          rx="18"
-          ry="14"
-          fill={colors.secondary}
-          opacity="0.6"
+          data-testid="sanctuary-cat-tail-root"
+          cx={tailRig.rootPatchCx}
+          cy={tailRig.rootPatchCy}
+          rx={tailRig.rootPatchRx}
+          ry={tailRig.rootPatchRy}
+          fill={colors.primary}
         />
       </g>
 
-      {/* === TAIL GROUP === */}
-      <g id="tail" className="animate-tail">
-        <path
-          d="M 78 62 Q 92 55 88 42 Q 86 35 82 38"
-          fill="none"
-          stroke={colors.primary}
-          strokeWidth="6"
-          strokeLinecap="round"
-        />
-        <circle
-          cx="82"
-          cy="38"
-          r="4"
-          fill={colors.accent}
-        />
-      </g>
-
-      {/* === HEAD GROUP === */}
       <g id="head">
-        {/* Main head */}
-        <circle
-          cx="50"
-          cy="35"
-          r="22"
-          fill={colors.primary}
-        />
-        
-        {/* Cheeks */}
-        <circle
-          cx="36"
-          cy="40"
-          r="6"
-          fill={colors.secondary}
-          opacity="0.5"
-        />
-        <circle
-          cx="64"
-          cy="40"
-          r="6"
-          fill={colors.secondary}
-          opacity="0.5"
-        />
+        <circle cx="50" cy="35" r="22" fill={colors.primary} />
+
+        <circle cx="36" cy="40" r="6" fill={colors.secondary} opacity="0.5" />
+        <circle cx="64" cy="40" r="6" fill={colors.secondary} opacity="0.5" />
       </g>
 
-      {/* === EARS GROUP === */}
       <g id="ears">
-        {/* Left ear */}
-        <path
-          d="M 32 22 L 28 8 L 40 18 Z"
-          fill={colors.primary}
-        />
-        <path
-          d="M 33 20 L 30 12 L 38 18 Z"
-          fill={colors.accent}
-          opacity="0.6"
-        />
-        
-        {/* Right ear */}
-        <path
-          d="M 68 22 L 72 8 L 60 18 Z"
-          fill={colors.primary}
-        />
-        <path
-          d="M 67 20 L 70 12 L 62 18 Z"
-          fill={colors.accent}
-          opacity="0.6"
-        />
+        <path d="M 32 22 L 28 8 L 40 18 Z" fill={colors.primary} />
+        <path d="M 33 20 L 30 12 L 38 18 Z" fill={colors.accent} opacity="0.6" />
+
+        <path d="M 68 22 L 72 8 L 60 18 Z" fill={colors.primary} />
+        <path d="M 67 20 L 70 12 L 62 18 Z" fill={colors.accent} opacity="0.6" />
       </g>
 
-      {/* === EYES GROUP === */}
-      <g id="eyes" className="animate-blink">
-        {/* Left eye */}
+      <g id="eyes">
         <ellipse
+          data-testid="sanctuary-cat-eye-left-sclera"
           cx="40"
           cy="33"
           rx="5"
-          ry={isHappy ? 2 : 6}
-          fill={colors.eye}
-          style={{
-            transition: 'ry var(--duration-fast) var(--ease-out-quart)',
-          }}
+          ry={6 * eyeOpen}
+          fill={expression.eyeWhite}
         />
-        {/* Left pupil */}
         <ellipse
-          cx={40 + pupilOffset.x}
-          cy={33 + pupilOffset.y}
-          rx="2.5"
-          ry={isHappy ? 0 : 3.5}
-          fill={colors.pupil}
-          style={{
-            transition: 'cx 0.1s ease-out, cy 0.1s ease-out, ry var(--duration-fast) var(--ease-out-quart)',
-          }}
-        />
-        {/* Left eye shine */}
-        <circle
-          cx={38 + pupilOffset.x * 0.5}
-          cy={31 + pupilOffset.y * 0.5}
-          r="1.5"
-          fill="white"
-          opacity={isHappy ? 0 : 0.8}
-        />
-
-        {/* Right eye */}
-        <ellipse
+          data-testid="sanctuary-cat-eye-right-sclera"
           cx="60"
           cy="33"
           rx="5"
-          ry={isHappy ? 2 : 6}
-          fill={colors.eye}
-          style={{
-            transition: 'ry var(--duration-fast) var(--ease-out-quart)',
-          }}
+          ry={6 * eyeOpen}
+          fill={expression.eyeWhite}
         />
-        {/* Right pupil */}
-        <ellipse
-          cx={60 + pupilOffset.x}
-          cy={33 + pupilOffset.y}
-          rx="2.5"
-          ry={isHappy ? 0 : 3.5}
-          fill={colors.pupil}
-          style={{
-            transition: 'cx 0.1s ease-out, cy 0.1s ease-out, ry var(--duration-fast) var(--ease-out-quart)',
-          }}
-        />
-        {/* Right eye shine */}
-        <circle
-          cx={58 + pupilOffset.x * 0.5}
-          cy={31 + pupilOffset.y * 0.5}
-          r="1.5"
-          fill="white"
-          opacity={isHappy ? 0 : 0.8}
-        />
+
+        <ellipse cx={40 + pupilOffset.x * 0.7} cy={33 + pupilOffset.y * 0.6} rx="3" ry={4.2 * eyeOpen} fill={expression.iris} />
+        <ellipse cx={60 + pupilOffset.x * 0.7} cy={33 + pupilOffset.y * 0.6} rx="3" ry={4.2 * eyeOpen} fill={expression.iris} />
+
+        <ellipse data-testid="sanctuary-cat-eye-left-pupil" cx={40 + pupilOffset.x} cy={33 + pupilOffset.y} rx="1.9" ry={3.2 * eyeOpen} fill={expression.pupil} />
+        <ellipse data-testid="sanctuary-cat-eye-right-pupil" cx={60 + pupilOffset.x} cy={33 + pupilOffset.y} rx="1.9" ry={3.2 * eyeOpen} fill={expression.pupil} />
+
+        <circle data-testid="sanctuary-cat-eye-left-highlight" cx={38 + pupilOffset.x * 0.5} cy={31 + pupilOffset.y * 0.35} r="1.2" fill={expression.highlight} opacity={isHappy ? 1 : 0.86} />
+        <circle data-testid="sanctuary-cat-eye-right-highlight" cx={58 + pupilOffset.x * 0.5} cy={31 + pupilOffset.y * 0.35} r="1.2" fill={expression.highlight} opacity={isHappy ? 1 : 0.86} />
+
+        <ellipse cx="40" cy="30.8" rx="5.2" ry="2" fill={colors.primary} opacity={expression.eyelidOpacity} />
+        <ellipse cx="60" cy="30.8" rx="5.2" ry="2" fill={colors.primary} opacity={expression.eyelidOpacity} />
       </g>
 
-      {/* === NOSE GROUP === */}
       <g id="nose">
-        <ellipse
-          cx="50"
-          cy="42"
-          rx="3"
-          ry="2"
-          fill={colors.accent}
-        />
+        <ellipse cx="50" cy="42" rx="3" ry="2" fill={colors.accent} />
       </g>
 
-      {/* === MOUTH GROUP === */}
       <g id="mouth">
         <path
-          d="M 47 45 Q 50 48 53 45"
+          d={isHappy ? 'M 45 44 Q 50 50 55 44' : 'M 47 45 Q 50 48 53 45'}
           fill="none"
           stroke={colors.accent}
           strokeWidth="1.5"
           strokeLinecap="round"
-          opacity="0.7"
-          style={{
-            d: isHappy ? 'path("M 45 44 Q 50 50 55 44")' : undefined,
-            transition: 'd var(--duration-fast) var(--ease-out-quart)',
-          }}
+          opacity="0.72"
         />
       </g>
 
-      {/* === WHISKERS GROUP === */}
       <g id="whiskers" opacity="0.4">
-        {/* Left whiskers */}
         <line x1="32" y1="38" x2="18" y2="35" stroke={colors.accent} strokeWidth="1" strokeLinecap="round" />
         <line x1="32" y1="42" x2="16" y2="42" stroke={colors.accent} strokeWidth="1" strokeLinecap="round" />
         <line x1="32" y1="46" x2="18" y2="49" stroke={colors.accent} strokeWidth="1" strokeLinecap="round" />
-        
-        {/* Right whiskers */}
+
         <line x1="68" y1="38" x2="82" y2="35" stroke={colors.accent} strokeWidth="1" strokeLinecap="round" />
         <line x1="68" y1="42" x2="84" y2="42" stroke={colors.accent} strokeWidth="1" strokeLinecap="round" />
         <line x1="68" y1="46" x2="82" y2="49" stroke={colors.accent} strokeWidth="1" strokeLinecap="round" />
       </g>
 
-      {/* === FRONT PAWS === */}
       <g id="paws">
         <ellipse cx="38" cy="78" rx="8" ry="5" fill={colors.primary} />
         <ellipse cx="62" cy="78" rx="8" ry="5" fill={colors.primary} />
-        
-        {/* Paw pads */}
+
         <circle cx="36" cy="79" r="1.5" fill={colors.accent} opacity="0.5" />
         <circle cx="40" cy="79" r="1.5" fill={colors.accent} opacity="0.5" />
         <circle cx="60" cy="79" r="1.5" fill={colors.accent} opacity="0.5" />
@@ -304,3 +257,6 @@ export function SanctuaryCat({
     </svg>
   );
 }
+
+
+
