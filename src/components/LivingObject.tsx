@@ -24,6 +24,7 @@ export const LivingObject = memo(function LivingObject({ object, onInteract }: L
     opacity,
     cursor: 'pointer',
     transition: 'opacity 0.3s ease',
+    filter: 'drop-shadow(0 4px 10px rgba(36,19,54,0.18))',
   };
   
   switch (type) {
@@ -152,7 +153,7 @@ export const LivingObject = memo(function LivingObject({ object, onInteract }: L
         <div 
           style={{
             ...baseStyle,
-            animation: 'float 4s ease-in-out infinite',
+            animation: 'arcade-float 4s ease-in-out infinite',
           }}
         >
           <svg width={size} height={size} viewBox="0 0 40 40">

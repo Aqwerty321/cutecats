@@ -1,121 +1,60 @@
-/**
- * LivingBackground — The Breathing Atmosphere
- * 
- * Creates an immersive, slowly-evolving mesh gradient backdrop.
- * Motion is subliminal, like watching clouds drift or lava lamp blobs.
- * 
- * Server Component — No client JS needed, pure CSS animation
- */
-
 export function LivingBackground() {
   return (
-    <div 
-      className="fixed inset-0 -z-10 overflow-hidden"
-      aria-hidden="true"
-    >
-      {/* Base gradient layer */}
-      <div 
+    <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
+      <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(
-            135deg,
-            var(--color-lilac-start) 0%,
-            var(--color-peach-start) 35%,
-            var(--color-mint-end) 70%,
-            var(--color-lilac-end) 100%
-          )`
+          background:
+            'linear-gradient(145deg, rgba(255,233,247,1) 0%, rgba(255,213,240,1) 34%, rgba(211,247,255,1) 72%, rgba(255,247,200,1) 100%)',
         }}
       />
-      
-      {/* Floating blob 1 — Lilac */}
-      <div 
+
+      <div
         className="absolute animate-drift delay-1"
         style={{
           width: '60vmax',
           height: '60vmax',
           left: '-10%',
-          top: '-20%',
-          background: `radial-gradient(
-            ellipse at center,
-            var(--color-lilac-start) 0%,
-            transparent 70%
-          )`,
-          opacity: 0.7,
+          top: '-18%',
+          background: 'radial-gradient(circle, rgba(255,78,159,0.4) 0%, transparent 72%)',
+          opacity: 0.48,
           filter: 'blur(60px)',
-          animationDuration: '25s',
+          animationDuration: '24s',
         }}
       />
-      
-      {/* Floating blob 2 — Peach */}
-      <div 
+
+      <div
         className="absolute animate-drift delay-2"
         style={{
-          width: '50vmax',
-          height: '50vmax',
-          right: '-15%',
+          width: '54vmax',
+          height: '54vmax',
+          right: '-12%',
           top: '10%',
-          background: `radial-gradient(
-            ellipse at center,
-            var(--color-peach-start) 0%,
-            transparent 70%
-          )`,
-          opacity: 0.6,
-          filter: 'blur(80px)',
-          animationDuration: '30s',
+          background: 'radial-gradient(circle, rgba(15,184,218,0.38) 0%, transparent 72%)',
+          opacity: 0.42,
+          filter: 'blur(72px)',
           animationDirection: 'reverse',
+          animationDuration: '30s',
         }}
       />
-      
-      {/* Floating blob 3 — Mint */}
-      <div 
+
+      <div
         className="absolute animate-drift delay-3"
         style={{
-          width: '55vmax',
-          height: '55vmax',
-          left: '20%',
-          bottom: '-25%',
-          background: `radial-gradient(
-            ellipse at center,
-            var(--color-mint-start) 0%,
-            transparent 70%
-          )`,
-          opacity: 0.5,
-          filter: 'blur(70px)',
-          animationDuration: '35s',
-        }}
-      />
-      
-      {/* Floating blob 4 — Secondary Lilac */}
-      <div 
-        className="absolute animate-drift delay-4"
-        style={{
-          width: '40vmax',
-          height: '40vmax',
-          right: '10%',
-          bottom: '5%',
-          background: `radial-gradient(
-            ellipse at center,
-            var(--color-lilac-end) 0%,
-            transparent 70%
-          )`,
+          width: '52vmax',
+          height: '52vmax',
+          left: '18%',
+          bottom: '-24%',
+          background: 'radial-gradient(circle, rgba(255,187,34,0.32) 0%, transparent 72%)',
           opacity: 0.4,
-          filter: 'blur(50px)',
-          animationDuration: '28s',
-          animationDirection: 'reverse',
+          filter: 'blur(68px)',
+          animationDuration: '34s',
         }}
       />
-      
-      {/* Subtle light beam effect */}
-      <div 
+
+      <div
         className="absolute inset-0"
-        style={{
-          background: `linear-gradient(
-            160deg,
-            rgba(255, 255, 255, 0.1) 0%,
-            transparent 40%,
-            transparent 100%
-          )`,
-        }}
+        style={{ background: 'linear-gradient(175deg, rgba(255,255,255,0.26) 0%, rgba(255,255,255,0) 52%)' }}
       />
     </div>
   );

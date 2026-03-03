@@ -7,13 +7,11 @@
 'use client';
 
 import { useWorld } from '@/lib';
-import { 
-  SanctuaryRoom, 
-  PlayRoom, 
-  GalleryRoom, 
-  DreamRoom,
-  RoomTransition,
-} from '@/components';
+import { RoomTransition } from './RoomTransition';
+import { SanctuaryRoom } from './rooms/SanctuaryRoom';
+import { PlayRoom } from './rooms/PlayRoom';
+import { GalleryRoom } from './rooms/GalleryRoom';
+import { DreamRoom } from './rooms/DreamRoom';
 
 export function WorldRenderer() {
   const { state } = useWorld();
@@ -35,7 +33,7 @@ export function WorldRenderer() {
 
   return (
     <RoomTransition>
-      {renderCurrentRoom()}
+      <div data-testid={`room-${state.currentRoom}`}>{renderCurrentRoom()}</div>
     </RoomTransition>
   );
 }

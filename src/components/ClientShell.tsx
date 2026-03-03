@@ -6,22 +6,29 @@
  */
 'use client';
 
-import { WorldProvider } from '@/lib';
 import { AdaptiveBackground } from './AdaptiveBackground';
+import { DiscoveryToast } from './DiscoveryToast';
+import { IdleStateOverlay } from './IdleStateOverlay';
+import { SessionWelcome } from './SessionWelcome';
 import { SoftCursor } from './SoftCursor';
 import { WorldRenderer } from './WorldRenderer';
 
 export function ClientShell() {
   return (
-    <WorldProvider>
+    <>
       {/* Mood-responsive background */}
       <AdaptiveBackground />
-      
+
       {/* Custom cursor */}
       <SoftCursor color="lilac" />
-      
+
       {/* Main world renderer with rooms */}
       <WorldRenderer />
-    </WorldProvider>
+
+      {/* Cross-room overlays */}
+      <SessionWelcome />
+      <DiscoveryToast />
+      <IdleStateOverlay />
+    </>
   );
 }

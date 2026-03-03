@@ -19,7 +19,6 @@ import {
   createWorldObject, 
   updateWorldObject,
   objectReactToCat,
-  WorldObjectType,
 } from './world-objects';
 import { 
   updateBody, 
@@ -256,7 +255,7 @@ export function updateLivingWorld(state: LivingWorldState, deltaTime: number): L
       c.id !== cat.id && distance(cat.position, c.position) < 40
     );
     
-    decideCatBehavior(cat, nearbyObjects, nearbyCats, state.cursorPosition);
+    decideCatBehavior(cat, nearbyObjects, nearbyCats);
     updateCatMovement(cat, dt);
     updateCatPosture(cat);
     
@@ -430,7 +429,7 @@ export function saveWorldMemory(state: LivingWorldState): void {
   // Persist to localStorage
   try {
     localStorage.setItem('purr-prism-world-memory', JSON.stringify(memory));
-  } catch (e) {
+  } catch {
     // localStorage might not be available
   }
 }
@@ -441,7 +440,7 @@ export function loadWorldMemory(): WorldMemory | undefined {
     if (saved) {
       return JSON.parse(saved) as WorldMemory;
     }
-  } catch (e) {
+  } catch {
     // localStorage might not be available
   }
   return undefined;

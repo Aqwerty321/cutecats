@@ -1,64 +1,52 @@
-/**
- * YarnBall — Tossable Tactile Toy
- * 
- * A soft, squishy yarn ball that can be dragged and tossed.
- * Cats in the room will chase it when it moves.
- */
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 interface YarnBallProps {
-  /** Color variant */
   color?: 'lilac' | 'peach' | 'mint' | 'cream';
-  /** Size in pixels */
   size?: number;
-  /** Called when yarn is tossed */
   onToss?: (velocity: { x: number; y: number }) => void;
 }
 
 const YARN_COLORS = {
   lilac: {
-    primary: '#C77DFF',
-    secondary: '#9D4EDD',
-    tertiary: '#E0AAFF',
-    shadow: 'rgba(199, 125, 255, 0.5)',
+    primary: 'var(--arcade-accent-violet-500)',
+    secondary: 'var(--arcade-accent-violet-700)',
+    tertiary: '#e6ccff',
+    shadow: 'rgba(143,75,255,0.44)',
   },
   peach: {
-    primary: '#FF6B9D',
-    secondary: '#FF4777',
-    tertiary: '#FFB3C6',
-    shadow: 'rgba(255, 107, 157, 0.5)',
+    primary: 'var(--arcade-accent-pink-500)',
+    secondary: 'var(--arcade-accent-pink-700)',
+    tertiary: '#ffcce5',
+    shadow: 'rgba(255,78,159,0.44)',
   },
   mint: {
-    primary: '#2DD4BF',
-    secondary: '#14B8A6',
-    tertiary: '#5EEAD4',
-    shadow: 'rgba(45, 212, 191, 0.5)',
+    primary: 'var(--arcade-accent-cyan-500)',
+    secondary: 'var(--arcade-accent-cyan-700)',
+    tertiary: '#c7f7ff',
+    shadow: 'rgba(15,184,218,0.42)',
   },
   cream: {
-    primary: '#FFB8A3',
-    secondary: '#FF8C69',
-    tertiary: '#FFD6C9',
-    shadow: 'rgba(255, 140, 105, 0.5)',
+    primary: '#ffbf78',
+    secondary: '#e99a3a',
+    tertiary: '#ffe2bd',
+    shadow: 'rgba(233,154,58,0.42)',
   },
 } as const;
 
-export function YarnBall({
-  color = 'lilac',
-  size = 60,
-  onToss,
-}: YarnBallProps) {
+export function YarnBall({ color = 'lilac', size = 60, onToss }: YarnBallProps) {
   const [isSquished, setIsSquished] = useState(false);
   const colors = YARN_COLORS[color];
 
-  const handleMouseDown = useCallback(() => {
+  const handlePress = useCallback(() => {
     setIsSquished(true);
   }, []);
 
-  const handleMouseUp = useCallback(() => {
+  const handleRelease = useCallback(() => {
     setIsSquished(false);
-  }, []);
+    onToss?.({ x: 0, y: 0 });
+  }, [onToss]);
 
   return (
     <svg
@@ -68,14 +56,15 @@ export function YarnBall({
       className="transition-transform duration-150 ease-out"
       style={{
         transform: isSquished ? 'scale(0.9)' : 'scale(1)',
-        filter: `drop-shadow(0 6px 16px ${colors.shadow}) drop-shadow(0 2px 4px rgba(0,0,0,0.1))`,
+        filter: `drop-shadow(0 6px 16px ${colors.shadow}) drop-shadow(0 2px 4px rgba(36,19,54,0.15))`,
         cursor: 'grab',
       }}
-      onMouseDown={handleMouseDown}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchStart={handleMouseDown}
-      onTouchEnd={handleMouseUp}
+      onMouseDown={handlePress}
+      onMouseUp={handleRelease}
+      onMouseLeave={handleRelease}
+      onTouchStart={handlePress}
+      onTouchEnd={handleRelease}
+      data-testid={`yarn-ball-${color}`}
     >
       <defs>
         <radialGradient id={`yarn-grad-${color}`} cx="35%" cy="35%" r="65%">
@@ -84,35 +73,19 @@ export function YarnBall({
           <stop offset="100%" stopColor={colors.secondary} />
         </radialGradient>
       </defs>
-      
-      {/* Main ball */}
-      <circle
-        cx="30"
-        cy="30"
-        r="26"
-        fill={`url(#yarn-grad-${color})`}
-      />
-      
-      {/* Yarn texture - curved lines */}
-      <g stroke={colors.secondary} strokeWidth="2.5" fill="none" opacity="0.7">
+
+      <circle cx="30" cy="30" r="26" fill={`url(#yarn-grad-${color})`} />
+
+      <g stroke={colors.secondary} strokeWidth="2.5" fill="none" opacity="0.72">
         <path d="M 15 20 Q 30 15 45 25" />
         <path d="M 12 35 Q 25 45 48 30" />
         <path d="M 20 45 Q 35 50 42 40" />
         <path d="M 25 12 Q 35 20 30 35" />
         <path d="M 40 15 Q 50 30 38 48" />
       </g>
-      
-      {/* Highlight */}
-      <ellipse
-        cx="20"
-        cy="20"
-        rx="10"
-        ry="7"
-        fill="white"
-        opacity="0.5"
-      />
 
-      {/* Trailing strand */}
+      <ellipse cx="20" cy="20" rx="10" ry="7" fill="white" opacity="0.56" />
+
       <path
         d="M 50 45 Q 55 50 52 58 Q 48 65 55 68"
         stroke={colors.primary}

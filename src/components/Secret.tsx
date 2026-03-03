@@ -1,24 +1,16 @@
 /**
- * Secret — Hidden Discoverable Element
- * 
- * Invisible until certain conditions are met.
- * Reveals with delight when found.
+ * Secret - Hidden discoverable element.
  */
 'use client';
 
-import { useState, useEffect, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useWorld } from '@/lib';
 
 interface SecretProps {
-  /** Unique ID for tracking discovery */
   id: string;
-  /** Conditions to reveal the secret */
   revealCondition: 'pets' | 'drags' | 'time' | 'idle' | 'visits' | 'always';
-  /** Threshold for numeric conditions */
   threshold?: number;
-  /** Content to reveal */
   children: ReactNode;
-  /** Position */
   className?: string;
 }
 
@@ -30,71 +22,68 @@ export function Secret({
   className = '',
 }: SecretProps) {
   const { state, dispatch } = useWorld();
-  const [isRevealed, setIsRevealed] = useState(false);
-  const [hasBeenSeen, setHasBeenSeen] = useState(false);
+  const dispatchScheduledRef = useRef(false);
 
-  // Check if already discovered
   const wasDiscovered = state.discovery.secretsFound.has(id);
 
-  useEffect(() => {
-    let shouldReveal = wasDiscovered;
-
-    if (!shouldReveal) {
-      switch (revealCondition) {
-        case 'pets':
-          shouldReveal = state.discovery.petCount >= threshold;
-          break;
-        case 'drags':
-          shouldReveal = state.discovery.dragCount >= threshold;
-          break;
-        case 'time':
-          shouldReveal = state.temporal.sessionDuration >= threshold * 1000;
-          break;
-        case 'idle':
-          shouldReveal = state.temporal.isDeepIdle;
-          break;
-        case 'visits':
-          shouldReveal = state.temporal.previousVisits >= threshold;
-          break;
-        case 'always':
-          shouldReveal = true;
-          break;
-      }
+  const shouldReveal = useMemo(() => {
+    if (wasDiscovered) {
+      return true;
     }
 
-    if (shouldReveal && !isRevealed) {
-      setIsRevealed(true);
-      
-      // Mark as discovered after a moment
-      if (!wasDiscovered) {
-        setTimeout(() => {
-          dispatch({ type: 'DISCOVER_SECRET', secretId: id });
-          setHasBeenSeen(true);
-        }, 1000);
-      }
+    switch (revealCondition) {
+      case 'pets':
+        return state.discovery.petCount >= threshold;
+      case 'drags':
+        return state.discovery.dragCount >= threshold;
+      case 'time':
+        return state.temporal.sessionDuration >= threshold * 1000;
+      case 'idle':
+        return state.temporal.isDeepIdle;
+      case 'visits':
+        return state.temporal.previousVisits >= threshold;
+      case 'always':
+        return true;
+      default:
+        return false;
     }
   }, [
+    wasDiscovered,
+    revealCondition,
     state.discovery.petCount,
     state.discovery.dragCount,
     state.temporal.sessionDuration,
     state.temporal.isDeepIdle,
     state.temporal.previousVisits,
-    revealCondition,
     threshold,
-    isRevealed,
-    wasDiscovered,
-    dispatch,
-    id,
   ]);
 
-  if (!isRevealed) return null;
+  useEffect(() => {
+    if (!shouldReveal || wasDiscovered || dispatchScheduledRef.current) {
+      return;
+    }
+
+    dispatchScheduledRef.current = true;
+    const timer = setTimeout(() => {
+      dispatch({ type: 'DISCOVER_SECRET', secretId: id });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [shouldReveal, wasDiscovered, dispatch, id]);
+
+  if (!shouldReveal) {
+    return null;
+  }
 
   return (
-    <div 
+    <div
+      data-testid={`secret-${id}`}
       className={`transition-all duration-1000 ${className}`}
       style={{
-        opacity: hasBeenSeen || wasDiscovered ? 0.8 : 1,
-        animation: !wasDiscovered ? 'pulse-glow 2s ease-in-out' : 'none',
+        opacity: wasDiscovered ? 0.84 : 1,
+        animation: wasDiscovered ? 'none' : 'pulse-glow 2.4s ease-in-out',
+        color: 'var(--arcade-ink-strong)',
+        textShadow: '0 1px 6px rgba(255,255,255,0.45)',
       }}
     >
       {children}

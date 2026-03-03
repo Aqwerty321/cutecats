@@ -14,108 +14,66 @@ interface CatStatusHUDProps {
   isVisible: boolean;
 }
 
-export const CatStatusHUD = memo(function CatStatusHUD({ 
-  name, 
-  variant, 
-  stats, 
-  isVisible 
-}: CatStatusHUDProps) {
-  if (!isVisible) return null;
+function getBarColor(value: number, type: 'energy' | 'hunger' | 'fun' | 'affection') {
+  if (type === 'hunger') {
+    return value < 30 ? '#20c997' : value < 70 ? '#f59f00' : '#e03131';
+  }
+  return value > 70 ? '#20c997' : value > 30 ? '#f59f00' : '#e03131';
+}
 
-  const getBarColor = (value: number, type: 'energy' | 'hunger' | 'fun' | 'affection') => {
-    if (type === 'hunger') {
-      // Hunger: Low is good (green), High is bad (red)
-      return value < 30 ? '#4ADE80' : value < 70 ? '#FACC15' : '#EF4444';
-    }
-    // Others: High is good (green), Low is bad (red)
-    return value > 70 ? '#4ADE80' : value > 30 ? '#FACC15' : '#EF4444';
-  };
+export const CatStatusHUD = memo(function CatStatusHUD({ name, variant, stats, isVisible }: CatStatusHUDProps) {
+  if (!isVisible) {
+    return null;
+  }
 
   return (
-    <div 
-      className="fixed z-50 pointer-events-none transition-opacity duration-300"
-      style={{ 
-        opacity: isVisible ? 1 : 0,
-        bottom: '20px',
-        right: '20px',
-      }}
+    <div
+      data-testid="cat-status-hud"
+      className="fixed bottom-5 right-5 z-50 pointer-events-none transition-opacity duration-300"
+      style={{ opacity: isVisible ? 1 : 0 }}
     >
-      <div className="bg-white/90 backdrop-blur-md p-4 rounded-2xl shadow-xl border border-white/50 w-64 transform transition-transform duration-300 translate-y-0">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center text-2xl shadow-inner">
-            🐱
+      <div className="arcade-panel arcade-panel-vivid w-64 rounded-2xl border p-4">
+        <div className="mb-4 flex items-center gap-3">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-full text-xs font-bold uppercase"
+            style={{
+              background: 'linear-gradient(145deg, rgba(255,255,255,0.96), rgba(255,255,255,0.55))',
+              color: 'var(--arcade-ink-strong)',
+            }}
+          >
+            cat
           </div>
           <div>
-            <h3 className="font-bold text-gray-800 text-lg leading-none">{name}</h3>
-            <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">{variant} Cat</span>
+            <h3 className="text-lg leading-none" style={{ color: 'var(--arcade-ink-strong)' }}>
+              {name}
+            </h3>
+            <span className="arcade-label">{variant} variant</span>
           </div>
         </div>
 
         <div className="space-y-3">
-          {/* Energy */}
-          <div>
-            <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-              <span>Energy</span>
-              <span>{Math.round(stats.energy)}%</span>
+          {([
+            ['energy', stats.energy],
+            ['hunger', stats.hunger],
+            ['fun', stats.fun],
+            ['affection', stats.affection],
+          ] as const).map(([key, value]) => (
+            <div key={key}>
+              <div className="mb-1 flex justify-between text-xs font-semibold" style={{ color: 'var(--arcade-ink-muted)' }}>
+                <span className="capitalize">{key}</span>
+                <span>{Math.round(value)}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full" style={{ background: 'rgba(57,32,79,0.15)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500 ease-out"
+                  style={{
+                    width: `${value}%`,
+                    backgroundColor: key === 'affection' ? 'var(--arcade-accent-pink-500)' : getBarColor(value, key),
+                  }}
+                />
+              </div>
             </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full transition-all duration-500 ease-out rounded-full"
-                style={{ 
-                  width: `${stats.energy}%`,
-                  backgroundColor: getBarColor(stats.energy, 'energy')
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Hunger */}
-          <div>
-            <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-              <span>Hunger</span>
-              <span>{Math.round(stats.hunger)}%</span>
-            </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full transition-all duration-500 ease-out rounded-full"
-                style={{ 
-                  width: `${stats.hunger}%`,
-                  backgroundColor: getBarColor(stats.hunger, 'hunger')
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Fun */}
-          <div>
-            <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-              <span>Fun</span>
-              <span>{Math.round(stats.fun)}%</span>
-            </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full transition-all duration-500 ease-out rounded-full"
-                style={{ 
-                  width: `${stats.fun}%`,
-                  backgroundColor: getBarColor(stats.fun, 'fun')
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Affection */}
-          <div>
-            <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-              <span>Affection</span>
-              <span>{Math.round(stats.affection)}%</span>
-            </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div 
-                className="h-full transition-all duration-500 ease-out rounded-full bg-gradient-to-r from-pink-300 to-rose-400"
-                style={{ width: `${stats.affection}%` }}
-              />
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

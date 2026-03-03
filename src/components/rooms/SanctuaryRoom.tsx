@@ -1,197 +1,143 @@
-/**
- * Sanctuary Room — Entry & Grounding
- * 
- * The first room. Safety, calm, emotional trust.
- * Cats breathe here. Hints suggest depth beyond.
- */
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { useWorld } from '@/lib';
-import { GlassPanel, DetailedCat } from '@/components';
-import { RoomPortal } from '../RoomPortal';
-import { WanderingCats } from '../WanderingCatHint';
-import { Secret } from '../Secret';
+import { useCallback, useRef, useState } from 'react';
+import { ROOM_COPY, ROOM_PORTAL_HINTS, SECRET_COPY, useWorld } from '@/lib';
+import { DetailedCat } from '../DetailedCat';
 import { Draggable } from '../Draggable';
+import { GlassPanel } from '../GlassPanel';
+import { RoomPortal } from '../RoomPortal';
+import { Secret } from '../Secret';
+import { WanderingCats } from '../WanderingCatHint';
 import { YarnBall } from '../toys';
 
 export function SanctuaryRoom() {
   const { state, petCat, catsInCurrentRoom, canAccessDreamRoom } = useWorld();
-  const cats = catsInCurrentRoom();
+  const roomCopy = ROOM_COPY.sanctuary;
+  const hints = ROOM_PORTAL_HINTS.sanctuary;
+
+  const cats = catsInCurrentRoom;
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  // Track cursor for cat reactions
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
-  
-  // Simple toys for sanctuary
   const [toyPositions, setToyPositions] = useState<Record<string, { x: number; y: number }>>({});
-  
+
   const handlePositionChange = useCallback((id: string, x: number, y: number) => {
-    setToyPositions(prev => ({ ...prev, [id]: { x, y } }));
+    setToyPositions((prev) => ({ ...prev, [id]: { x, y } }));
   }, []);
-  
-  // Objects for cats to interact with
-  const toys = [
-    { id: 'sanctuary-yarn-1', x: 30, y: 65, type: 'yarn' },
-    { id: 'sanctuary-yarn-2', x: 70, y: 60, type: 'yarn' },
-  ];
-  
-  const interactableObjects = toys.map(t => ({
-    id: t.id,
-    x: toyPositions[t.id]?.x ?? t.x,
-    y: toyPositions[t.id]?.y ?? t.y,
-    type: t.type,
-  }));
-  
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!containerRef.current) return;
+
+  const handleMouseMove = useCallback((event: React.MouseEvent) => {
+    if (!containerRef.current) {
+      return;
+    }
+
     const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const x = ((event.clientX - rect.left) / rect.width) * 100;
+    const y = ((event.clientY - rect.top) / rect.height) * 100;
     setCursorPos({ x, y });
   }, []);
 
+  const toyDefs = [
+    { id: 'sanctuary-yarn-1', x: 30, y: 65, type: 'yarn' },
+    { id: 'sanctuary-yarn-2', x: 70, y: 60, type: 'yarn' },
+  ];
+
+  const interactableObjects = toyDefs.map((toy) => ({
+    id: toy.id,
+    x: toyPositions[toy.id]?.x ?? toy.x,
+    y: toyPositions[toy.id]?.y ?? toy.y,
+    type: toy.type,
+  }));
+
+  const sanctuaryStatus = state.temporal.isDeepIdle
+    ? 'Deep idle detected. The sanctuary is in quiet mode.'
+    : state.discovery.petCount > 5
+      ? 'Trust is high. Cats are following your movement patterns.'
+      : roomCopy.helper;
+
   return (
-    <div 
+    <div
       ref={containerRef}
-      className="relative min-h-screen min-h-dvh flex flex-col items-center justify-center p-8 gap-8"
+      data-testid="sanctuary-room"
+      className="relative flex min-h-screen min-h-dvh flex-col items-center justify-center gap-8 overflow-hidden p-8"
       onMouseMove={handleMouseMove}
     >
-      {/* Portals to other rooms */}
-      <RoomPortal to="playroom" position="right" hint="Something playful..." glowColor="peach" />
-      <RoomPortal to="gallery" position="left" hint="Companions..." glowColor="lilac" />
-      {canAccessDreamRoom() && (
-        <RoomPortal to="dream" position="bottom" hint="Drift deeper..." glowColor="mint" requiresAccess />
+      <RoomPortal to="playroom" position="right" hint={hints.playroom} glowColor="peach" />
+      <RoomPortal to="gallery" position="left" hint={hints.gallery} glowColor="lilac" />
+      {canAccessDreamRoom && (
+        <RoomPortal to="dream" position="bottom" hint={hints.dream} glowColor="mint" requiresAccess />
       )}
-      
-      {/* Wandering cats peeking from edges */}
+
       <WanderingCats />
 
-      {/* Hidden secret - appears after 3 minutes */}
-      <Secret id="sanctuary-patience" revealCondition="time" threshold={180} className="absolute top-4 right-4 z-30">
-        <span className="text-sm font-medium" style={{ color: '#C77DFF' }}>
-          ✧ Patient Soul ✧
-        </span>
+      <Secret id="sanctuary-patience" revealCondition="time" threshold={180} className="absolute right-5 top-4 z-30">
+        <span className="arcade-label">{SECRET_COPY['sanctuary-patience'].label}</span>
       </Secret>
 
-      {/* Hero Title */}
-      <header className="text-center mb-4 relative z-10">
-        <h1 
-          className="text-4xl md:text-6xl font-semibold tracking-tight"
-          style={{ 
-            color: 'var(--color-void)',
-            textShadow: '0 4px 20px rgba(199, 125, 255, 0.3)',
-          }}
-        >
-          Purr & Prism
+      <header className="relative z-10 text-center">
+        <p className="arcade-label">{roomCopy.subtitle}</p>
+        <h1 data-testid="room-title-sanctuary" className="arcade-display mt-2 text-5xl md:text-7xl">
+          {roomCopy.title}
         </h1>
-        <p 
-          className="mt-4 text-xl"
-          style={{ 
-            color: 'var(--color-void)',
-            opacity: 0.8,
-          }}
-        >
-          A sanctuary. Explore gently. 🐱
+        <p className="mt-3 text-base md:text-lg" style={{ color: 'var(--arcade-ink)' }}>
+          {roomCopy.helper}
         </p>
       </header>
 
-      {/* Draggable yarn balls for cats to play with */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 20 }}>
-        <Draggable
-          id="sanctuary-yarn-1"
-          initialX={30}
-          initialY={65}
-          mass={0.8}
-          onPositionChange={handlePositionChange}
-        >
-          <YarnBall color="lilac" size={50} />
+        <Draggable id="sanctuary-yarn-1" initialX={30} initialY={65} mass={0.8} onPositionChange={handlePositionChange}>
+          <YarnBall color="lilac" size={52} />
         </Draggable>
-        <Draggable
-          id="sanctuary-yarn-2"
-          initialX={70}
-          initialY={60}
-          mass={0.8}
-          onPositionChange={handlePositionChange}
-        >
-          <YarnBall color="peach" size={45} />
+        <Draggable id="sanctuary-yarn-2" initialX={70} initialY={60} mass={0.8} onPositionChange={handlePositionChange}>
+          <YarnBall color="peach" size={48} />
         </Draggable>
       </div>
 
-      {/* Detailed cats that roam freely */}
       {cats.map((cat) => (
         <DetailedCat
           key={cat.id}
           cat={cat}
           onPet={() => petCat(cat.id)}
-          bounds={{ minX: 15, maxX: 85, minY: 50, maxY: 78 }}
+          bounds={{ minX: 14, maxX: 86, minY: 50, maxY: 80 }}
           cursorPosition={cursorPos}
           objects={interactableObjects}
         />
       ))}
 
-      {/* Empty state hint */}
       {cats.length === 0 && (
-        <GlassPanel glowColor="lilac" className="p-8 z-10">
-          <p 
-            className="text-center text-lg"
-            style={{ color: 'var(--color-void)' }}
-          >
-            The cats have wandered off... 🐾<br />
-            <span className="text-sm opacity-70">Follow them?</span>
+        <GlassPanel glowColor="lilac" className="z-10 p-8" variant="vivid" elevation={2}>
+          <p className="text-center text-lg" style={{ color: 'var(--arcade-ink-strong)' }}>
+            Cats have wandered to another room.
+            <br />
+            <span className="text-sm" style={{ color: 'var(--arcade-ink-muted)' }}>
+              Follow their trail through the portals.
+            </span>
           </p>
         </GlassPanel>
       )}
 
-      {/* Ambient Message */}
-      <GlassPanel 
-        glowColor="peach"
-        className="mt-8 px-8 py-6 max-w-md text-center relative z-10"
-      >
-        <p 
-          className="text-lg leading-relaxed"
-          style={{ color: 'var(--color-void)' }}
-        >
-          {state.temporal.isDeepIdle 
-            ? "The world grows quiet. The cats sleep. Time stretches gently... 🌙"
-            : state.discovery.petCount > 5
-              ? "The cats feel your presence. They trust you. 💕"
-              : "Take your time. Touch things. Follow the cats. ✨"}
+      <GlassPanel className="relative z-10 mt-4 max-w-lg px-7 py-5 text-center" glowColor="peach" variant="soft" elevation={2}>
+        <p className="text-base leading-relaxed" style={{ color: 'var(--arcade-ink-strong)' }}>
+          {sanctuaryStatus}
         </p>
       </GlassPanel>
 
-      {/* Secret - appears after 10 pets */}
       <Secret id="sanctuary-kindness" revealCondition="pets" threshold={10} className="absolute bottom-20 left-8 z-30">
-        <span className="text-sm font-medium" style={{ color: '#C77DFF' }}>
-          The cats remember your gentleness. 💜
-        </span>
+        <span className="arcade-label">{SECRET_COPY['sanctuary-kindness'].label}</span>
       </Secret>
 
-      {/* Secret - appears on 3rd visit */}
-      <Secret id="sanctuary-return" revealCondition="visits" threshold={3} className="absolute top-20 left-4 z-30">
-        <span className="text-sm font-medium" style={{ color: '#FF6B9D' }}>
-          This place knows you now. 🏠
-        </span>
+      <Secret id="sanctuary-return" revealCondition="visits" threshold={3} className="absolute left-4 top-20 z-30">
+        <span className="arcade-label">{SECRET_COPY['sanctuary-return'].label}</span>
       </Secret>
 
-      {/* Subtle hint about more */}
       {state.discovery.visitedRooms.size === 1 && (
-        <p 
-          className="mt-8 text-base animate-pulse-glow"
-          style={{ color: 'var(--color-void)', opacity: 0.7 }}
-        >
-          ✨ There is more beyond the edges... ✨
+        <p className="mt-3 text-sm font-semibold uppercase tracking-[0.12em] animate-pulse-glow" style={{ color: 'var(--arcade-ink-muted)' }}>
+          More rooms are active at the edges.
         </p>
       )}
 
-      {/* Footer whisper */}
-      <footer 
-        className="mt-8 text-sm"
-        style={{ color: 'var(--color-void)', opacity: 0.6 }}
-      >
-        {state.temporal.previousVisits > 0 
-          ? `Welcome back. Visit ${state.temporal.previousVisits + 1}. 🌸`
-          : "Move slowly. Stay as long as you need. 🍃"}
+      <footer className="mt-4 text-xs font-semibold uppercase tracking-[0.08em]" style={{ color: 'var(--arcade-ink-subtle)' }}>
+        {state.temporal.previousVisits > 0
+          ? `Visit cycle ${state.temporal.previousVisits + 1} online`
+          : roomCopy.footer}
       </footer>
     </div>
   );

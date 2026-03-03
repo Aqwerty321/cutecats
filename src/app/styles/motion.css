@@ -1,0 +1,147 @@
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.018) translateY(-2px);
+  }
+}
+
+@keyframes arcade-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-8px) rotate(0.6deg);
+  }
+  70% {
+    transform: translateY(-3px) rotate(-0.45deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes tail-sway {
+  0%,
+  100% {
+    transform: rotate(-9deg);
+  }
+  50% {
+    transform: rotate(9deg);
+  }
+}
+
+@keyframes blink {
+  0%,
+  91%,
+  100% {
+    transform: scaleY(1);
+  }
+  94% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes gradient-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(26px, -18px) scale(1.04);
+  }
+  66% {
+    transform: translate(-16px, 14px) scale(0.99);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes heart-rise {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-28px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 0.95;
+    transform: translateY(0);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 3.8s var(--ease-fluid) infinite;
+}
+
+.animate-float {
+  animation: arcade-float 8s var(--ease-fluid) infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s var(--ease-fluid) infinite;
+}
+
+.animate-tail {
+  transform-origin: bottom center;
+  animation: tail-sway 3s var(--ease-fluid) infinite;
+}
+
+.animate-blink {
+  transform-origin: center;
+  animation: blink 4.4s var(--ease-fluid) infinite;
+}
+
+.animate-drift {
+  animation: gradient-drift 20s var(--ease-fluid) infinite;
+}
+
+.delay-1 {
+  animation-delay: 0.45s;
+}
+
+.delay-2 {
+  animation-delay: 0.95s;
+}
+
+.delay-3 {
+  animation-delay: 1.4s;
+}
+
+.delay-4 {
+  animation-delay: 1.9s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  body {
+    cursor: auto !important;
+  }
+}

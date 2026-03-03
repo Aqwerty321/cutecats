@@ -1,0 +1,65 @@
+.glass,
+.arcade-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--arcade-shadow-sm), inset 0 1px 0 var(--glass-highlight);
+  transition:
+    transform var(--duration-normal) var(--ease-out-expo),
+    box-shadow var(--duration-normal) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-fluid),
+    background var(--duration-fast) var(--ease-fluid);
+}
+
+.glass::before,
+.arcade-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+.arcade-panel-soft {
+  background: var(--arcade-surface-soft);
+  box-shadow: var(--arcade-shadow-sm), inset 0 1px 0 var(--arcade-surface-highlight);
+}
+
+.arcade-panel-vivid {
+  background: var(--arcade-surface-vivid);
+  border-color: var(--arcade-border-strong);
+  box-shadow: var(--arcade-shadow-md), inset 0 1px 0 var(--arcade-surface-highlight);
+}
+
+.arcade-panel-dream {
+  background: var(--arcade-surface-dream);
+  border-color: rgba(219, 181, 255, 0.28);
+  color: var(--arcade-inverse);
+  box-shadow: var(--arcade-shadow-lg), 0 0 30px rgba(143, 75, 255, 0.35);
+}
+
+.arcade-elev-1 {
+  box-shadow: var(--arcade-shadow-xs), inset 0 1px 0 var(--arcade-surface-highlight);
+}
+
+.arcade-elev-2 {
+  box-shadow: var(--arcade-shadow-sm), inset 0 1px 0 var(--arcade-surface-highlight);
+}
+
+.arcade-elev-3 {
+  box-shadow: var(--arcade-shadow-md), inset 0 1px 0 var(--arcade-surface-highlight);
+}
+
+.arcade-surface-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--arcade-shadow-lg), inset 0 1px 0 var(--arcade-surface-highlight);
+}
+
+.arcade-focus-ring:focus-visible {
+  outline: 3px solid var(--arcade-focus);
+  outline-offset: 2px;
+}

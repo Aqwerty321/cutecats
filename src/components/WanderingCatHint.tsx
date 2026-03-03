@@ -39,6 +39,7 @@ export function WanderingCatHint({ cat }: WanderingCatHintProps) {
 
   return (
     <div
+      data-testid={`wandering-hint-${cat.id}`}
       className="fixed z-30 cursor-pointer transition-all duration-700 ease-out"
       style={{
         [isRight ? 'right' : 'left']: isVisible ? '10px' : '-100px',
@@ -86,15 +87,15 @@ export function WanderingCatHint({ cat }: WanderingCatHintProps) {
       <div
         className="absolute text-xs font-medium whitespace-nowrap"
         style={{
-          color: 'var(--color-void)',
-          opacity: 0.6,
+          color: 'var(--arcade-ink-strong)',
+          opacity: 0.78,
           top: '100%',
           left: '50%',
           transform: 'translateX(-50%)',
           marginTop: '4px',
         }}
       >
-        {cat.name}?
+        Follow {cat.name}
       </div>
     </div>
   );
@@ -105,7 +106,7 @@ export function WanderingCatHint({ cat }: WanderingCatHintProps) {
  */
 export function WanderingCats() {
   const { wanderingCats } = useWorld();
-  const cats = wanderingCats();
+  const cats = wanderingCats;
 
   if (cats.length === 0) return null;
 

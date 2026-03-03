@@ -288,8 +288,7 @@ export function updateCatPosture(cat: CatAgent): void {
 export function decideCatBehavior(
   cat: CatAgent,
   nearbyObjects: Array<{ id: string; position: Vector2; type: string }>,
-  nearbyCats: CatAgent[],
-  cursorPosition: Vector2 | null
+  nearbyCats: CatAgent[]
 ): void {
   const now = Date.now();
   const behaviorAge = now - cat.behaviorStartTime;
@@ -468,7 +467,7 @@ export function catReactToInteraction(
   }
 }
 
-export function shouldCatApproachCursor(cat: CatAgent, cursorPosition: Vector2): boolean {
+export function shouldCatApproachCursor(cat: CatAgent): boolean {
   // Only approach if curious, tolerant, and hasn't been bothered
   if (cat.memory.hasBeenOverstimulated) return false;
   if (cat.internal.tolerance < 0.4) return false;

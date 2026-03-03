@@ -1,63 +1,52 @@
-/**
- * SessionWelcome — Return Visitor Recognition
- * 
- * A gentle acknowledgment for returning visitors.
- * Shows once per session, then fades away.
- */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useWorld } from '@/lib';
 import { GlassPanel } from './GlassPanel';
 
 export function SessionWelcome() {
   const { state } = useWorld();
-  const [isVisible, setIsVisible] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
-  // Show for returning visitors
   useEffect(() => {
-    if (state.temporal.previousVisits > 0 && !isDismissed) {
-      const showTimer = setTimeout(() => setIsVisible(true), 1500);
-      const hideTimer = setTimeout(() => setIsVisible(false), 8000);
-      
-      return () => {
-        clearTimeout(showTimer);
-        clearTimeout(hideTimer);
-      };
+    if (state.temporal.previousVisits === 0 || dismissed) {
+      return;
     }
-  }, [state.temporal.previousVisits, isDismissed]);
 
-  if (!isVisible || isDismissed || state.temporal.previousVisits === 0) {
+    const showTimer = setTimeout(() => setVisible(true), 1000);
+    const hideTimer = setTimeout(() => setVisible(false), 7800);
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
+  }, [dismissed, state.temporal.previousVisits]);
+
+  if (!visible || dismissed || state.temporal.previousVisits === 0) {
     return null;
   }
 
-  const getMessage = () => {
-    const visits = state.temporal.previousVisits;
-    if (visits === 1) return "Welcome back. The cats remember you.";
-    if (visits < 5) return "You've returned again. This brings them joy.";
-    if (visits < 10) return "A familiar presence. The sanctuary knows you.";
-    return "You are part of this world now.";
-  };
+  const visits = state.temporal.previousVisits;
+  const line =
+    visits === 1
+      ? 'Welcome back. The arcade cats remember your route.'
+      : visits < 5
+        ? 'Return detected. Trust level is rising.'
+        : visits < 10
+          ? 'Regular visitor status confirmed.'
+          : 'You are now part of the sanctuary rhythm.';
 
   return (
-    <div 
-      className="fixed top-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-1000"
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: `translateX(-50%) translateY(${isVisible ? 0 : -20}px)`,
-      }}
-      onClick={() => setIsDismissed(true)}
+    <div
+      className="fixed left-1/2 top-6 z-50 -translate-x-1/2 transition-all duration-700"
+      style={{ opacity: visible ? 1 : 0, transform: `translateX(-50%) translateY(${visible ? 0 : -12}px)` }}
+      onClick={() => setDismissed(true)}
+      data-testid="session-welcome"
     >
-      <GlassPanel 
-        glowColor="lilac"
-        className="px-6 py-4 cursor-pointer"
-      >
-        <p 
-          className="text-sm text-center"
-          style={{ color: 'var(--color-void)', opacity: 0.8 }}
-        >
-          {getMessage()}
+      <GlassPanel glowColor="lilac" className="cursor-pointer px-5 py-3" variant="vivid" elevation={2}>
+        <p className="text-sm" style={{ color: 'var(--arcade-ink-strong)' }}>
+          {line}
         </p>
       </GlassPanel>
     </div>

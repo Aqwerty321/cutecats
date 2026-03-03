@@ -1,0 +1,107 @@
+:root,
+[data-theme="candy-arcade"] {
+  --font-display: var(--font-fredoka), "Trebuchet MS", "Segoe UI", sans-serif;
+  --font-body: var(--font-nunito), "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: var(--font-jetbrains), "Cascadia Code", "Courier New", monospace;
+
+  --arcade-bg-0: #fff8fb;
+  --arcade-bg-1: #ffe9f7;
+  --arcade-bg-2: #ffd7f0;
+  --arcade-bg-3: #d3f7ff;
+  --arcade-bg-4: #fff7c8;
+
+  --arcade-ink-strong: #241336;
+  --arcade-ink: #39204f;
+  --arcade-ink-muted: #624779;
+  --arcade-ink-subtle: #7e6794;
+  --arcade-inverse: #fff8ff;
+
+  --arcade-accent-pink-500: #ff4e9f;
+  --arcade-accent-pink-700: #cc1f78;
+  --arcade-accent-cyan-500: #0fb8da;
+  --arcade-accent-cyan-700: #0a7fa5;
+  --arcade-accent-yellow-500: #ffbb22;
+  --arcade-accent-yellow-700: #cc8b05;
+  --arcade-accent-violet-500: #8f4bff;
+  --arcade-accent-violet-700: #6126cf;
+
+  --arcade-border-soft: rgba(57, 32, 79, 0.18);
+  --arcade-border-strong: rgba(57, 32, 79, 0.34);
+  --arcade-focus: #0b7ed1;
+
+  --arcade-surface-soft: rgba(255, 255, 255, 0.68);
+  --arcade-surface-vivid: rgba(255, 255, 255, 0.8);
+  --arcade-surface-dream: rgba(24, 12, 46, 0.8);
+  --arcade-surface-highlight: rgba(255, 255, 255, 0.88);
+
+  --arcade-shadow-xs: 0 2px 8px rgba(43, 17, 66, 0.14);
+  --arcade-shadow-sm: 0 8px 20px rgba(43, 17, 66, 0.2);
+  --arcade-shadow-md: 0 14px 40px rgba(43, 17, 66, 0.25);
+  --arcade-shadow-lg: 0 24px 58px rgba(43, 17, 66, 0.35);
+
+  --arcade-glow-pink: rgba(255, 78, 159, 0.46);
+  --arcade-glow-cyan: rgba(15, 184, 218, 0.44);
+  --arcade-glow-yellow: rgba(255, 187, 34, 0.44);
+  --arcade-glow-violet: rgba(143, 75, 255, 0.45);
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-fluid: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --duration-instant: 90ms;
+  --duration-fast: 180ms;
+  --duration-normal: 320ms;
+  --duration-slow: 720ms;
+  --duration-glacial: 1600ms;
+
+  --cat-cream-primary: #ffd8c1;
+  --cat-cream-secondary: #ffbd9e;
+  --cat-cream-accent: #ff9066;
+
+  --cat-peach-primary: #ffb9cd;
+  --cat-peach-secondary: #ff90b0;
+  --cat-peach-accent: #ff5f90;
+
+  --cat-lilac-primary: #dbb5ff;
+  --cat-lilac-secondary: #c488ff;
+  --cat-lilac-accent: #9f56fb;
+
+  --cat-mint-primary: #8cefd2;
+  --cat-mint-secondary: #58e0b7;
+  --cat-mint-accent: #27c992;
+
+  --cat-eye: #3f2d55;
+  --cat-pupil: #1d1328;
+
+  /* Backward compatible aliases */
+  --color-cloud: #ffffff;
+  --color-void: var(--arcade-ink-strong);
+
+  --color-lilac-start: var(--arcade-accent-violet-500);
+  --color-lilac-end: var(--arcade-accent-violet-700);
+  --color-peach-start: var(--arcade-accent-pink-500);
+  --color-peach-end: var(--arcade-accent-pink-700);
+  --color-mint-start: var(--arcade-accent-cyan-500);
+  --color-mint-end: var(--arcade-accent-cyan-700);
+
+  --color-lilac: var(--arcade-accent-violet-500);
+  --color-peach: var(--arcade-accent-pink-500);
+  --color-mint: var(--arcade-accent-cyan-500);
+
+  --glass-blur: 18px;
+  --glass-bg: var(--arcade-surface-soft);
+  --glass-border: var(--arcade-border-soft);
+  --glass-highlight: var(--arcade-surface-highlight);
+  --glass-shadow: rgba(43, 17, 66, 0.22);
+
+  --glow-lilac: var(--arcade-glow-violet);
+  --glow-peach: var(--arcade-glow-pink);
+  --glow-mint: var(--arcade-glow-cyan);
+
+  --cat-primary: var(--cat-cream-primary);
+  --cat-secondary: var(--cat-cream-secondary);
+  --cat-accent: var(--cat-cream-accent);
+  --cat-eyes: var(--cat-eye);
+  --cat-pupils: var(--cat-pupil);
+}

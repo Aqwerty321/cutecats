@@ -1,15 +1,7 @@
-/**
- * GlassCard — Small Tossable Glass Piece
- * 
- * A smaller glass element that can be stacked and arranged.
- * Purely tactile, no content.
- */
 'use client';
 
 interface GlassCardProps {
-  /** Color glow */
   color?: 'lilac' | 'peach' | 'mint';
-  /** Size variant */
   size?: 'small' | 'medium' | 'large';
 }
 
@@ -20,34 +12,28 @@ const SIZE_MAP = {
 } as const;
 
 const GLOW_MAP = {
-  lilac: 'var(--glow-lilac)',
-  peach: 'var(--glow-peach)',
-  mint: 'var(--glow-mint)',
+  lilac: 'var(--arcade-glow-violet)',
+  peach: 'var(--arcade-glow-pink)',
+  mint: 'var(--arcade-glow-cyan)',
 } as const;
 
-export function GlassCard({
-  color = 'lilac',
-  size = 'medium',
-}: GlassCardProps) {
+export function GlassCard({ color = 'lilac', size = 'medium' }: GlassCardProps) {
   const dimensions = SIZE_MAP[size];
   const glow = GLOW_MAP[color];
 
   return (
     <div
-      className="glass"
+      className="arcade-panel arcade-panel-soft"
       style={{
         width: dimensions.width,
         height: dimensions.height,
-        boxShadow: `0 8px 32px var(--glass-shadow), 0 0 20px ${glow}`,
+        boxShadow: `var(--arcade-shadow-sm), 0 0 16px ${glow}`,
         cursor: 'grab',
       }}
     >
-      {/* Decorative inner shape */}
       <div
-        className="absolute inset-2 rounded-lg opacity-30"
-        style={{
-          background: `linear-gradient(135deg, ${glow}, transparent)`,
-        }}
+        className="absolute inset-2 rounded-lg opacity-35"
+        style={{ background: `linear-gradient(130deg, ${glow}, transparent 68%)` }}
       />
     </div>
   );

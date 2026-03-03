@@ -10,6 +10,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { getCatPalette } from './cat-visuals';
 
 interface SanctuaryCatProps {
   /** Size in pixels */
@@ -22,33 +23,6 @@ interface SanctuaryCatProps {
   className?: string;
 }
 
-const COLOR_VARIANTS = {
-  cream: {
-    primary: '#FFD6C9',
-    secondary: '#FFB8A3',
-    accent: '#FF8C69',
-    outline: '#E8A088',
-  },
-  peach: {
-    primary: '#FFB5C5',
-    secondary: '#FF8FAB',
-    accent: '#FF6B8A',
-    outline: '#E87A95',
-  },
-  lilac: {
-    primary: '#D4A5FF',
-    secondary: '#C77DFF',
-    accent: '#A855F7',
-    outline: '#9F4AE8',
-  },
-  mint: {
-    primary: '#6EE7B7',
-    secondary: '#34D399',
-    accent: '#10B981',
-    outline: '#0D9668',
-  },
-} as const;
-
 export function SanctuaryCat({
   size = 200,
   variant = 'cream',
@@ -59,7 +33,7 @@ export function SanctuaryCat({
   const [pupilOffset, setPupilOffset] = useState({ x: 0, y: 0 });
   const [isHappy, setIsHappy] = useState(false);
 
-  const colors = COLOR_VARIANTS[variant];
+  const colors = getCatPalette(variant);
 
   // Pupil tracking with smooth dampening
   useEffect(() => {
@@ -219,7 +193,7 @@ export function SanctuaryCat({
           cy="33"
           rx="5"
           ry={isHappy ? 2 : 6}
-          fill="var(--cat-eyes)"
+          fill={colors.eye}
           style={{
             transition: 'ry var(--duration-fast) var(--ease-out-quart)',
           }}
@@ -230,7 +204,7 @@ export function SanctuaryCat({
           cy={33 + pupilOffset.y}
           rx="2.5"
           ry={isHappy ? 0 : 3.5}
-          fill="var(--cat-pupils)"
+          fill={colors.pupil}
           style={{
             transition: 'cx 0.1s ease-out, cy 0.1s ease-out, ry var(--duration-fast) var(--ease-out-quart)',
           }}
@@ -250,7 +224,7 @@ export function SanctuaryCat({
           cy="33"
           rx="5"
           ry={isHappy ? 2 : 6}
-          fill="var(--cat-eyes)"
+          fill={colors.eye}
           style={{
             transition: 'ry var(--duration-fast) var(--ease-out-quart)',
           }}
@@ -261,7 +235,7 @@ export function SanctuaryCat({
           cy={33 + pupilOffset.y}
           rx="2.5"
           ry={isHappy ? 0 : 3.5}
-          fill="var(--cat-pupils)"
+          fill={colors.pupil}
           style={{
             transition: 'cx 0.1s ease-out, cy 0.1s ease-out, ry var(--duration-fast) var(--ease-out-quart)',
           }}

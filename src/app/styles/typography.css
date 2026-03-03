@@ -1,0 +1,52 @@
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  color: var(--arcade-ink-strong);
+  font-family: var(--font-body);
+  letter-spacing: 0.003em;
+  line-height: 1.6;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--arcade-ink-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+p {
+  margin: 0;
+  color: var(--arcade-ink);
+}
+
+.arcade-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.arcade-label {
+  color: var(--arcade-ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.arcade-body {
+  color: var(--arcade-ink);
+  font-family: var(--font-body);
+}
+
+.arcade-muted {
+  color: var(--arcade-ink-subtle);
+}
